@@ -6,6 +6,9 @@
     <title>Colegio Esteban Echeverría - Gestión de Matrícula y Preplanta</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Microsoft Authentication Library (MSAL v2) -->
+    <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+
     <style>
         :root {
             --primary-teal: #2cb3ab;
@@ -24,6 +27,28 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Roboto', sans-serif; background: var(--bg-light); color: var(--text-dark); }
 
+        /* Pantalla de Login */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(135deg, var(--header-bg) 0%, var(--primary-dark) 100%);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .login-card {
+            background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center; max-width: 420px; width: 90%;
+        }
+        .login-card h2 { font-family: 'Montserrat', sans-serif; font-size: 20px; color: var(--header-bg); margin-bottom: 10px; }
+        .login-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 25px; line-height: 1.4; }
+        .btn-ms {
+            background-color: #2f2f2f; color: white; border: none; padding: 12px 20px;
+            border-radius: 6px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600;
+            cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; transition: background 0.2s;
+        }
+        .btn-ms:hover { background-color: #000000; }
+        .login-error { color: #dc3545; font-size: 12px; margin-top: 15px; display: none; font-weight: 500; }
+
+        /* Header e Interfaz Principal */
         header {
             background: linear-gradient(135deg, var(--header-bg) 0%, var(--primary-dark) 100%);
             color: white; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between;
@@ -34,12 +59,18 @@
         .brand-text h1 { font-family: 'Montserrat', sans-serif; font-size: 20px; font-weight: 700; }
         .brand-text p { font-size: 12px; color: var(--primary-teal); font-weight: 500; }
         
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .user-info { font-size: 12px; color: #e2e8f0; font-weight: 500; }
         .btn-sync {
             background: var(--primary-teal); color: white; border: none; padding: 8px 16px;
             border-radius: 6px; font-family: 'Montserrat', sans-serif; font-weight: 700;
             font-size: 12px; cursor: pointer; transition: background 0.2s;
         }
         .btn-sync:hover { background: #249790; }
+        .btn-logout {
+            background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
+        }
 
         .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
         .tabs { display: flex; gap: 10px; border-bottom: 3px solid #ddd; margin-bottom: 20px; }
@@ -78,175 +109,214 @@
 </head>
 <body>
 
-<header>
-    <div class="brand">
-        <img src="ESCUDO.png" alt="Escudo Colegio Esteban Echeverría" onerror="this.style.display='none'">
-        <div class="brand-text">
-            <h1>Colegio Esteban Echeverría</h1>
-            <p>Sistema Institucional de Gestión de Matrícula y Preplanta</p>
-        </div>
+<!-- PANTALLA DE ACCESO/LOGIN -->
+<div id="login-screen">
+    <div class="login-card">
+        <h2>Colegio Esteban Echeverría</h2>
+        <p>Iniciá sesión con tu cuenta institucional para acceder a la Gestión de Matrícula y Preplanta.</p>
+        <button class="btn-ms" onclick="iniciarSesionMicrosoft()">
+            <svg width="18" height="18" viewBox="0 0 23 23"><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/></svg>
+            Iniciar sesión con Microsoft
+        </button>
+        <div id="login-error-msg" class="login-error"></div>
     </div>
-    <button class="btn-sync" onclick="sincronizarDatos()">🔄 Sincronizar Google Sheets</button>
-</header>
+</div>
 
-<div class="container">
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('rema7')">REMA 7° (CO VPR)</button>
-        <button class="tab-btn" onclick="switchTab('rema14')">REMA 1° a 4° (CO VSE)</button>
-        <button class="tab-btn" style="background: var(--primary-dark); color: white;" onclick="switchTab('proyeccion')">📊 Proyección Preplanta 2027</button>
-    </div>
+<!-- APLICACIÓN PRINCIPAL (OCULTA HASTA AUTENTICAR) -->
+<div id="app-content" style="display: none;">
+    <header>
+        <div class="brand">
+            <img src="ESCUDO.png" alt="Escudo Colegio Esteban Echeverría" onerror="this.style.display='none'">
+            <div class="brand-text">
+                <h1>Colegio Esteban Echeverría</h1>
+                <p>Sistema Institucional de Gestión de Matrícula y Preplanta</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <span id="user-display" class="user-info"></span>
+            <button class="btn-sync" onclick="sincronizarDatos()">🔄 Sincronizar Google Sheets</button>
+            <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+        </div>
+    </header>
 
-    <!-- VISTA REMA 7° -->
-    <div id="view-rema7">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Total Postulantes 7°</h3>
-                <div class="value" id="kpi-total7">0</div>
-                <div class="subtext">Ingreso CO VPR</div>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('rema7')">REMA 7° (CO VPR)</button>
+            <button class="tab-btn" onclick="switchTab('rema14')">REMA 1° a 4° (CO VSE)</button>
+            <button class="tab-btn" style="background: var(--primary-dark); color: white;" onclick="switchTab('proyeccion')">📊 Proyección Preplanta 2027</button>
+        </div>
+
+        <!-- VISTA REMA 7° -->
+        <div id="view-rema7">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Postulantes 7°</h3>
+                    <div class="value" id="kpi-total7">0</div>
+                    <div class="subtext">Ingreso CO VPR</div>
+                </div>
+                <div class="stat-card" style="border-color: var(--pago-si);">
+                    <h3>Pagados / Confirmados</h3>
+                    <div class="value" id="kpi-conf7" style="color: var(--pago-si);">0</div>
+                </div>
+                <div class="stat-card" style="border-color: var(--pago-no);">
+                    <h3>Bajas / No Matriculan</h3>
+                    <div class="value" id="kpi-nomat7" style="color: var(--pago-no);">0</div>
+                </div>
             </div>
-            <div class="stat-card" style="border-color: var(--pago-si);">
-                <h3>Pagados / Confirmados</h3>
-                <div class="value" id="kpi-conf7" style="color: var(--pago-si);">0</div>
+
+            <div class="table-controls">
+                <input type="text" id="search7" class="search-box" onkeyup="renderTable7()" placeholder="Buscar en 7°...">
+                <select id="filterPago7" class="filter-select" onchange="renderTable7()">
+                    <option value="">Todos los Pagos</option>
+                    <option value="SI">PAGÓ: SI</option>
+                    <option value="NO">PAGÓ: NO</option>
+                </select>
             </div>
-            <div class="stat-card" style="border-color: var(--pago-no);">
-                <h3>Bajas / No Matriculan</h3>
-                <div class="value" id="kpi-nomat7" style="color: var(--pago-no);">0</div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CITADE</th><th>Estudiante</th><th>Grado Actual</th><th>Estado Pago</th><th>Estado Matrícula</th><th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody7"></tbody>
+                </table>
             </div>
         </div>
 
-        <div class="table-controls">
-            <input type="text" id="search7" class="search-box" onkeyup="renderTable7()" placeholder="Buscar en 7°...">
-            <select id="filterPago7" class="filter-select" onchange="renderTable7()">
-                <option value="">Todos los Pagos</option>
-                <option value="SI">PAGÓ: SI</option>
-                <option value="NO">PAGÓ: NO</option>
-            </select>
-        </div>
+        <!-- VISTA REMA 1° A 4° -->
+        <div id="view-rema14" style="display:none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Matrícula 1° a 4°</h3>
+                    <div class="value" id="kpi-total14">0</div>
+                    <div class="subtext" id="kpi-sub-total14">0 Regulares | 0 DAR</div>
+                </div>
+                <div class="stat-card" style="border-color: var(--pago-si);">
+                    <h3>Regulares Pagados</h3>
+                    <div class="value" id="kpi-pago14" style="color: var(--pago-si);">0</div>
+                </div>
+                <div class="stat-card" style="border-color: var(--dar-color);">
+                    <h3>Alumnos DAR</h3>
+                    <div class="value" id="kpi-dar14" style="color: var(--dar-color);">0</div>
+                    <div class="subtext">Cursos aparte</div>
+                </div>
+            </div>
 
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>CITADE</th><th>Estudiante</th><th>Grado Actual</th><th>Estado Pago</th><th>Estado Matrícula</th><th>Observaciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tbody7"></tbody>
-            </table>
-        </div>
-    </div>
+            <div class="table-controls">
+                <input type="text" id="search14" class="search-box" onkeyup="renderTable14()" placeholder="Buscar en 1° a 4°...">
+                <select id="filterPago14" class="filter-select" onchange="renderTable14()">
+                    <option value="">Todos los Pagos</option>
+                    <option value="SI">PAGÓ: SI</option>
+                    <option value="NO">PAGÓ: NO</option>
+                </select>
+            </div>
 
-    <!-- VISTA REMA 1° A 4° -->
-    <div id="view-rema14" style="display:none;">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Total Matrícula 1° a 4°</h3>
-                <div class="value" id="kpi-total14">0</div>
-                <div class="subtext" id="kpi-sub-total14">0 Regulares | 0 DAR</div>
-            </div>
-            <div class="stat-card" style="border-color: var(--pago-si);">
-                <h3>Regulares Pagados</h3>
-                <div class="value" id="kpi-pago14" style="color: var(--pago-si);">0</div>
-            </div>
-            <div class="stat-card" style="border-color: var(--dar-color);">
-                <h3>Alumnos DAR</h3>
-                <div class="value" id="kpi-dar14" style="color: var(--dar-color);">0</div>
-                <div class="subtext">Cursos aparte</div>
-            </div>
-        </div>
-
-        <div class="table-controls">
-            <input type="text" id="search14" class="search-box" onkeyup="renderTable14()" placeholder="Buscar en 1° a 4°...">
-            <select id="filterPago14" class="filter-select" onchange="renderTable14()">
-                <option value="">Todos los Pagos</option>
-                <option value="SI">PAGÓ: SI</option>
-                <option value="NO">PAGÓ: NO</option>
-            </select>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>CITADE</th><th>Estudiante</th><th>Curso Actual</th><th>Curso 2027</th><th>Estado Pago</th><th>Observaciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tbody14"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- VISTA PROYECCIÓN PREPLANTA 2027 (CONSOLIDADOS) -->
-    <div id="view-proyeccion" style="display:none;">
-        <div class="stats-grid">
-            <div class="stat-card" style="border-color: var(--primary-dark);">
-                <h3>Total Regulares Escuela (7° + 1° a 4°)</h3>
-                <div class="value" id="kpi-proy-regulares-total">0</div>
-                <div class="subtext">Alumnos concretos de la escuela</div>
-            </div>
-            <div class="stat-card" style="border-color: var(--pago-si);">
-                <h3>Regulares Pagos / Confirmados</h3>
-                <div class="value" id="kpi-proy-regulares-pagos" style="color: var(--pago-si);">0</div>
-                <div class="subtext" id="kpi-proy-pct-pagos">0% del total regular</div>
-            </div>
-            <div class="stat-card" style="border-color: var(--pago-no);">
-                <h3>Regulares Deben / Pendientes</h3>
-                <div class="value" id="kpi-proy-regulares-deben" style="color: var(--pago-no);">0</div>
-                <div class="subtext">Falta regularizar pago</div>
-            </div>
-            <div class="stat-card" style="border-color: var(--dar-color);">
-                <h3>Alumnos DAR (Aparte)</h3>
-                <div class="value" id="kpi-proy-dar-total" style="color: var(--dar-color);">0</div>
-                <div class="subtext">Procesados por fuera</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CITADE</th><th>Estudiante</th><th>Curso Actual</th><th>Curso 2027</th><th>Estado Pago</th><th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody14"></tbody>
+                </table>
             </div>
         </div>
 
-        <div class="charts-row">
-            <div class="chart-card">
-                <h4>Proyección por Cursos Regulares (1° a 5° Año 2027)</h4>
-                <canvas id="chartProyeccionCursos" height="180"></canvas>
+        <!-- VISTA PROYECCIÓN PREPLANTA 2027 -->
+        <div id="view-proyeccion" style="display:none;">
+            <div class="stats-grid">
+                <div class="stat-card" style="border-color: var(--primary-dark);">
+                    <h3>Total Regulares Escuela (7° + 1° a 4°)</h3>
+                    <div class="value" id="kpi-proy-regulares-total">0</div>
+                    <div class="subtext">Alumnos concretos de la escuela</div>
+                </div>
+                <div class="stat-card" style="border-color: var(--pago-si);">
+                    <h3>Regulares Pagos / Confirmados</h3>
+                    <div class="value" id="kpi-proy-regulares-pagos" style="color: var(--pago-si);">0</div>
+                    <div class="subtext" id="kpi-proy-pct-pagos">0% del total regular</div>
+                </div>
+                <div class="stat-card" style="border-color: var(--pago-no);">
+                    <h3>Regulares Deben / Pendientes</h3>
+                    <div class="value" id="kpi-proy-regulares-deben" style="color: var(--pago-no);">0</div>
+                    <div class="subtext">Falta regularizar pago</div>
+                </div>
+                <div class="stat-card" style="border-color: var(--dar-color);">
+                    <h3>Alumnos DAR (Aparte)</h3>
+                    <div class="value" id="kpi-proy-dar-total" style="color: var(--dar-color);">0</div>
+                    <div class="subtext">Procesados por fuera</div>
+                </div>
             </div>
-            <div class="chart-card">
-                <h4>Estado de Pago Alumnos Regulares Escolarizados</h4>
-                <canvas id="chartProyeccionPago" height="180"></canvas>
+
+            <div class="charts-row">
+                <div class="chart-card">
+                    <h4>Proyección por Cursos Regulares (1° a 5° Año 2027)</h4>
+                    <canvas id="chartProyeccionCursos" height="180"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h4>Estado de Pago Alumnos Regulares Escolarizados</h4>
+                    <canvas id="chartProyeccionPago" height="180"></canvas>
+                </div>
             </div>
-        </div>
 
-        <div class="section-header">🏫 1. Matrícula Regular Concreta Escuela (7° + 1° a 4°)</div>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Curso / Nivel 2027</th>
-                        <th>Origen 2026 (CITADE)</th>
-                        <th>Pagados / Confirmados</th>
-                        <th>Deben / Pendientes</th>
-                        <th>Total Alumnos Regulares</th>
-                        <th>Estimación Secciones (Aulas)</th>
-                    </tr>
-                </thead>
-                <tbody id="tbodyProyeccionOrdinaria"></tbody>
-            </table>
-        </div>
+            <div class="section-header">🏫 1. Matrícula Regular Concreta Escuela (7° + 1° a 4°)</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Curso / Nivel 2027</th>
+                            <th>Origen 2026 (CITADE)</th>
+                            <th>Pagados / Confirmados</th>
+                            <th>Deben / Pendientes</th>
+                            <th>Total Alumnos Regulares</th>
+                            <th>Estimación Secciones (Aulas)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyProyeccionOrdinaria"></tbody>
+                </table>
+            </div>
 
-        <div class="section-header">🧩 2. Programa DAR (Cursos / Chicos Aparte)</div>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nivel DAR 2027</th>
-                        <th>Origen 2026</th>
-                        <th>Alumnos Proyectados</th>
-                        <th>Estado de Continuidad</th>
-                        <th>Impacto Preplanta</th>
-                    </tr>
-                </thead>
-                <tbody id="tbodyProyeccionDAR"></tbody>
-            </table>
+            <div class="section-header">🧩 2. Programa DAR (Cursos / Chicos Aparte)</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nivel DAR 2027</th>
+                            <th>Origen 2026</th>
+                            <th>Alumnos Proyectados</th>
+                            <th>Estado de Continuidad</th>
+                            <th>Impacto Preplanta</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyProyeccionDAR"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
+// CONFIGURACIÓN DE DOMINIOS PERMITIDOS
+const DOMINIOS_PERMITIDOS = ['vaneduc.edu.ar', 'uai.edu.ar'];
+
+// CONFIGURACIÓN DE MSAL (MICROSOFT AUTH)
+const msalConfig = {
+    auth: {
+        clientId: "TU_CLIENT_ID_DE_AZURE", // Reemplazar con el Client ID de tu registro en Azure
+        authority: "https://login.microsoftonline.com/common",
+        redirectUri: window.location.origin + window.location.pathname
+    },
+    cache: {
+        cacheLocation: "sessionStorage",
+        storeAuthStateInCookie: false
+    }
+};
+
+const myMSALObj = new msal.PublicClientApplication(msalConfig);
+
+// CONFIGURACIÓN DE FUENTES DE DATOS GOOGLE SHEETS
 const CSV_URL_REMA7 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1z4L4t62x33D6xezUw7k49xLZNqReUV5qKANmA_J0NdsOYrbSqKmG6ongOYK1w/pub?gid=966426154&single=true&output=csv";
 const CSV_URL_REMA14 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1z4L4t62x33D6xezUw7k49xLZNqReUV5qKANmA_J0NdsOYrbSqKmG6ongOYK1w/pub?gid=1078825249&single=true&output=csv";
 
@@ -254,6 +324,57 @@ let dataRema7 = [];
 let dataRema14 = [];
 let chartProyCursosInstance = null;
 let chartProyPagoInstance = null;
+
+window.addEventListener('load', async () => {
+    try {
+        await myMSALObj.initialize();
+        const currentAccounts = myMSALObj.getAllAccounts();
+        if (currentAccounts.length > 0) {
+            validarYIniciarCuenta(currentAccounts[0]);
+        }
+    } catch (error) {
+        console.error("Error al inicializar MSAL:", error);
+    }
+});
+
+async function iniciarSesionMicrosoft() {
+    const errorDiv = document.getElementById('login-error-msg');
+    errorDiv.style.display = 'none';
+
+    try {
+        const loginResponse = await myMSALObj.loginPopup({
+            scopes: ["User.Read"]
+        });
+        validarYIniciarCuenta(loginResponse.account);
+    } catch (error) {
+        console.error("Error durante el login:", error);
+        errorDiv.innerText = "Error o cancelación de inicio de sesión.";
+        errorDiv.style.display = 'block';
+    }
+}
+
+function validarYIniciarCuenta(account) {
+    const email = (account.username || '').toLowerCase();
+    const domain = email.split('@')[1];
+    const errorDiv = document.getElementById('login-error-msg');
+
+    if (DOMINIOS_PERMITIDOS.includes(domain)) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        document.getElementById('user-display').innerText = account.name || email;
+        sincronizarDatos();
+    } else {
+        errorDiv.innerText = `Acceso denegado. El correo (${email}) no pertenece a un dominio autorizado (@vaneduc.edu.ar o @uai.edu.ar).`;
+        errorDiv.style.display = 'block';
+        myMSALObj.logoutPopup();
+    }
+}
+
+function cerrarSesion() {
+    myMSALObj.logoutPopup().then(() => {
+        window.location.reload();
+    });
+}
 
 function switchTab(tab) {
     document.getElementById('view-rema7').style.display = tab === 'rema7' ? 'block' : 'none';
@@ -325,10 +446,9 @@ async function sincronizarDatos() {
         actualizarMétricas14();
         renderTable14();
         actualizarProyeccion2027();
-        alert("¡Sincronización completada!");
     } catch (e) {
         console.error(e);
-        alert("Error al intentar sincronizar con Google Sheets.");
+        alert("Error al intentar sincronizar los datos de Google Sheets.");
     }
 }
 
@@ -402,7 +522,6 @@ function renderTable14() {
 }
 
 function actualizarProyeccion2027() {
-    // ESTRUCTURA BASE DE REGULARES (7° + 1° a 4°)
     const cursosRegulares = {
         '1° Año 2027': { origen: '7° Grado (CO VPR)', pagados: 0, deben: 0, total: 0 },
         '2° Año 2027': { origen: '1° Año 2026 (CO VSE)', pagados: 0, deben: 0, total: 0 },
@@ -413,7 +532,7 @@ function actualizarProyeccion2027() {
 
     let darTotalCount = 0;
 
-    // 1. SUMATORIA 7° (Pasa a ser 1° Año 2027)
+    // 1. Sumatoria 7° (Ingreso)
     dataRema7.forEach(d => {
         if (d.estado === 'NO MATRICULA' || (d.obs && d.obs.toLowerCase().includes('baja'))) return;
         
@@ -423,7 +542,7 @@ function actualizarProyeccion2027() {
         else cursosRegulares['1° Año 2027'].deben++;
     });
 
-    // 2. SUMATORIA 1° a 4° (Pasan a 2° a 5° Año 2027) - EXCLUYENDO DAR
+    // 2. Sumatoria 1° a 4° (Sin DAR)
     dataRema14.forEach(d => {
         const obsText = (d.obs || '').toLowerCase();
         const porqueText = (d.porque || '').toLowerCase();
@@ -436,10 +555,9 @@ function actualizarProyeccion2027() {
 
         if (esDAR) {
             darTotalCount++;
-            return; // Se aparta de la sumatoria regular
+            return;
         }
 
-        // Mapeo flexible de cohorte
         let dest = null;
         if (cursoActual.includes('1') || cursoActual.toLowerCase().includes('primer')) dest = '2° Año 2027';
         else if (cursoActual.includes('2') || cursoActual.toLowerCase().includes('segundo')) dest = '3° Año 2027';
@@ -453,7 +571,7 @@ function actualizarProyeccion2027() {
         }
     });
 
-    // TOTALES CONSOLIDADOS DE REGULARES
+    // Consolidados
     let totalEscuelaRegulares = 0;
     let totalEscuelaPagados = 0;
     let totalEscuelaDeben = 0;
@@ -464,14 +582,14 @@ function actualizarProyeccion2027() {
         totalEscuelaDeben += cursosRegulares[key].deben;
     }
 
-    // ACTUALIZACIÓN DE KPIS CONSOLIDADOS
+    // KPIs Consolidados
     document.getElementById('kpi-proy-regulares-total').innerText = totalEscuelaRegulares;
     document.getElementById('kpi-proy-regulares-pagos').innerText = totalEscuelaPagados;
     document.getElementById('kpi-proy-regulares-deben').innerText = totalEscuelaDeben;
     document.getElementById('kpi-proy-dar-total').innerText = darTotalCount;
     document.getElementById('kpi-proy-pct-pagos').innerText = totalEscuelaRegulares ? ((totalEscuelaPagados / totalEscuelaRegulares) * 100).toFixed(1) + '% regularizado' : '0%';
 
-    // RENDER TABLA REGULARES (7° + 1° a 4°)
+    // Renders
     document.getElementById('tbodyProyeccionOrdinaria').innerHTML = Object.keys(cursosRegulares).map(curso => {
         const item = cursosRegulares[curso];
         const secciones = Math.ceil(item.total / 30) || 0;
@@ -487,7 +605,6 @@ function actualizarProyeccion2027() {
         `;
     }).join('');
 
-    // RENDER TABLA DAR (APARTE)
     document.getElementById('tbodyProyeccionDAR').innerHTML = `
         <tr>
             <td><strong>Matrícula DAR 2027</strong></td>
@@ -498,7 +615,7 @@ function actualizarProyeccion2027() {
         </tr>
     `;
 
-    // GRÁFICOS
+    // Gráficos
     if (chartProyCursosInstance) chartProyCursosInstance.destroy();
     chartProyCursosInstance = new Chart(document.getElementById('chartProyeccionCursos'), {
         type: 'bar',
@@ -526,10 +643,6 @@ function actualizarProyeccion2027() {
         options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
     });
 }
-
-window.onload = function() {
-    // sincronizarDatos();
-};
 </script>
 </body>
 </html>
