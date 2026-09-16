@@ -42,7 +42,6 @@
             display: flex; align-items: center; gap: 6px;
         }
         .btn-sync:hover { background: #249790; transform: translateY(-1px); }
-        .btn-sync:active { transform: translateY(0); }
 
         .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
         .tabs { display: flex; gap: 10px; border-bottom: 3px solid #ddd; margin-bottom: 20px; }
@@ -66,7 +65,7 @@
         .search-box { flex: 1; min-width: 240px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 13px; outline: none; }
         .filter-select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 13px; outline: none; background: white; }
 
-        .table-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.05); max-height: 600px; overflow-y: auto; }
+        .table-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.05); max-height: 600px; overflow-y: auto; margin-bottom: 25px; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th { position: sticky; top: 0; background: var(--header-bg); color: white; font-family: 'Montserrat', sans-serif; font-weight: 600; text-align: left; padding: 12px 14px; font-size: 12px; z-index: 2; }
         td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #333; }
@@ -81,6 +80,8 @@
         .turno-m { background: var(--turno-m); color: white; }
         .turno-t { background: var(--turno-t); color: white; }
         .turno-na { background: var(--turno-na); color: white; }
+        
+        .section-header { font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 700; color: var(--header-bg); margin: 20px 0 10px 0; display: flex; align-items: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -90,7 +91,7 @@
         <img src="ESCUDO.png" alt="Escudo Colegio Esteban Echeverría" onerror="this.style.display='none'">
         <div class="brand-text">
             <h1>Colegio Esteban Echeverría</h1>
-            <p>Sistema Institucional de Gestión de Matrícula Secundario</p>
+            <p>Sistema Institucional de Gestión de Matrícula y Preplanta</p>
         </div>
     </div>
     <div class="header-actions">
@@ -100,8 +101,8 @@
 
 <div class="container">
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('rema7')">REMA 7° (Ingreso)</button>
-        <button class="tab-btn" onclick="switchTab('rema14')">REMA 1° a 4° Año</button>
+        <button class="tab-btn active" onclick="switchTab('rema7')">REMA 7° (CO VPR)</button>
+        <button class="tab-btn" onclick="switchTab('rema14')">REMA 1° a 4° (CO VSE)</button>
         <button class="tab-btn" style="background: var(--primary-dark); color: white;" onclick="switchTab('proyeccion')">📊 Proyección Preplanta 2027</button>
     </div>
 
@@ -109,46 +110,24 @@
     <div id="view-rema7">
         <div class="stats-grid">
             <div class="stat-card" style="border-color: var(--primary-dark);">
-                <h3>Total Postulantes 7°</h3>
+                <h3>Total Postulantes 7° (CO VPR)</h3>
                 <div class="value" id="kpi-total7">0</div>
                 <div class="subtext">Inscriptos registrados</div>
             </div>
             <div class="stat-card" style="border-color: var(--pago-si);">
-                <h3>Confirmados</h3>
+                <h3>Confirmados / Pagados</h3>
                 <div class="value" id="kpi-conf7" style="color: var(--pago-si);">0</div>
                 <div class="subtext" id="kpi-conf7-pct">0% del total</div>
             </div>
-            <div class="stat-card" style="border-color: var(--pago-si);">
-                <h3>Matrícula Pagada</h3>
-                <div class="value" id="kpi-pago7">0</div>
-                <div class="subtext" id="kpi-nopago7-sub">0 sin abonar</div>
-            </div>
             <div class="stat-card" style="border-color: var(--pago-no);">
-                <h3>No Matriculan</h3>
+                <h3>Bajas / No Matriculan</h3>
                 <div class="value" id="kpi-nomat7" style="color: var(--pago-no);">0</div>
-                <div class="subtext" id="kpi-nomat7-pct">0% de baja</div>
-            </div>
-        </div>
-
-        <div class="charts-row">
-            <div class="chart-card">
-                <h4>Distribución por Estado de Matrícula</h4>
-                <canvas id="chartEstado7" height="180"></canvas>
-            </div>
-            <div class="chart-card">
-                <h4>Distribución de Turnos Elegidos</h4>
-                <canvas id="chartTurno7" height="180"></canvas>
+                <div class="subtext" id="kpi-nomat7-pct">0% del total</div>
             </div>
         </div>
 
         <div class="table-controls">
-            <input type="text" id="search7" class="search-box" onkeyup="renderTable7()" placeholder="Buscar por nombre, código o sección...">
-            <select id="filterEstado7" class="filter-select" onchange="renderTable7()">
-                <option value="">Todos los Estados</option>
-                <option value="CONFIRMADO">CONFIRMADO</option>
-                <option value="NO MATRICULA">NO MATRICULA</option>
-                <option value="PENDIENTE">PENDIENTE</option>
-            </select>
+            <input type="text" id="search7" class="search-box" onkeyup="renderTable7()" placeholder="Buscar por nombre, CITADE o grado...">
             <select id="filterPago7" class="filter-select" onchange="renderTable7()">
                 <option value="">Todos los Pagos</option>
                 <option value="SI">PAGÓ: SI</option>
@@ -160,12 +139,12 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Código</th>
-                        <th>Nombre y Apellido</th>
+                        <th>CITADE</th>
+                        <th>Estudiante</th>
                         <th>Grado Actual</th>
-                        <th>Pago</th>
+                        <th>Estado Pago</th>
                         <th>Estado Matrícula</th>
-                        <th>Turno Elegido</th>
+                        <th>Turno</th>
                         <th>Observaciones</th>
                     </tr>
                 </thead>
@@ -178,29 +157,24 @@
     <div id="view-rema14" style="display:none;">
         <div class="stats-grid">
             <div class="stat-card" style="border-color: var(--primary-dark);">
-                <h3>Total Matrícula (1° a 4°)</h3>
+                <h3>Total Matrícula 1° a 4° (CO VSE)</h3>
                 <div class="value" id="kpi-total14">0</div>
                 <div class="subtext" id="kpi-sub-total14">0 Regulares | 0 DAR</div>
             </div>
             <div class="stat-card" style="border-color: var(--pago-si);">
                 <h3>Regulares Pagados</h3>
                 <div class="value" id="kpi-pago14" style="color: var(--pago-si);">0</div>
-                <div class="subtext" id="kpi-pago14-sub">0 pendientes de cobro</div>
+                <div class="subtext" id="kpi-pago14-sub">0 pendientes</div>
             </div>
             <div class="stat-card" style="border-color: var(--primary-teal);">
-                <h3>Matrículas DAR</h3>
+                <h3>Casos DAR</h3>
                 <div class="value" id="kpi-dar14" style="color: var(--primary-dark);">0</div>
-                <div class="subtext">Pagos por defecto / Exentos</div>
-            </div>
-            <div class="stat-card" style="border-color: var(--pago-no);">
-                <h3>Bajas / No Continúan</h3>
-                <div class="value" id="kpi-bajas14" style="color: var(--pago-no);">0</div>
-                <div class="subtext">Registros con observación</div>
+                <div class="subtext">Cursos/Chicos aparte</div>
             </div>
         </div>
 
         <div class="table-controls">
-            <input type="text" id="search14" class="search-box" onkeyup="renderTable14()" placeholder="Buscar estudiante, curso actual o CITADE...">
+            <input type="text" id="search14" class="search-box" onkeyup="renderTable14()" placeholder="Buscar estudiante, CITADE o curso...">
             <select id="filterPago14" class="filter-select" onchange="renderTable14()">
                 <option value="">Todos los Pagos</option>
                 <option value="SI">PAGÓ: SI</option>
@@ -218,7 +192,6 @@
                         <th>Curso 2027</th>
                         <th>Estado Pago</th>
                         <th>Observaciones</th>
-                        <th>Causa / Por qué</th>
                     </tr>
                 </thead>
                 <tbody id="tbody14"></tbody>
@@ -230,51 +203,68 @@
     <div id="view-proyeccion" style="display:none;">
         <div class="stats-grid">
             <div class="stat-card" style="border-color: var(--primary-dark);">
-                <h3>Matrícula Total Proyectada 2027</h3>
+                <h3>Matrícula Total 2027 (Ordinaria + DAR)</h3>
                 <div class="value" id="kpi-proy-total">0</div>
-                <div class="subtext">Capacidad física en aulas (1° a 5°)</div>
-            </div>
-            <div class="stat-card" style="border-color: var(--pago-si);">
-                <h3>Matrícula Regular Cobrable</h3>
-                <div class="value" id="kpi-proy-regulares" style="color: var(--pago-si);">0</div>
-                <div class="subtext">Aportes ordinarios estimados</div>
+                <div class="subtext">Población estudiantil proyectada</div>
             </div>
             <div class="stat-card" style="border-color: var(--primary-teal);">
-                <h3>Cupos Especiales / DAR</h3>
-                <div class="value" id="kpi-proy-dar" style="color: var(--primary-dark);">0</div>
-                <div class="subtext">Retención y exenciones por defecto</div>
+                <h3>Secundario Ordinario (7° + 1° a 4°)</h3>
+                <div class="value" id="kpi-proy-ordinario" style="color: var(--primary-dark);">0</div>
+                <div class="subtext">Aulas de régimen general (1° a 5° 2027)</div>
             </div>
-            <div class="stat-card" style="border-color: var(--pago-no);">
-                <h3>Bajas Estimadas</h3>
-                <div class="value" id="kpi-proy-bajas" style="color: var(--pago-no);">0</div>
-                <div class="subtext">No matriculados / Salientes</div>
+            <div class="stat-card" style="border-color: #7b2cbf;">
+                <h3>Programa DAR (Aparte)</h3>
+                <div class="value" id="kpi-proy-dar-total" style="color: #7b2cbf;">0</div>
+                <div class="subtext">Cursos/Chicos integrados aparte</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--pago-si);">
+                <h3>Total Confirmado / Pagado</h3>
+                <div class="value" id="kpi-proy-pagados" style="color: var(--pago-si);">0</div>
+                <div class="subtext" id="kpi-proy-pend-sub">0% del global abonado</div>
             </div>
         </div>
 
         <div class="charts-row">
             <div class="chart-card">
-                <h4>Distribución Estimada por Año (2027)</h4>
+                <h4>Proyección por Cursos (1° a 5° Año 2027)</h4>
                 <canvas id="chartProyeccionCursos" height="180"></canvas>
             </div>
             <div class="chart-card">
-                <h4>Composición de Matrícula (Regulares vs DAR)</h4>
-                <canvas id="chartProyeccionTipo" height="180"></canvas>
+                <h4>Estado Global de Pago / Confirmación 2027</h4>
+                <canvas id="chartProyeccionPago" height="180"></canvas>
             </div>
         </div>
 
+        <div class="section-header">🏫 1. Cohorte Ordinaria (1° a 5° Año 2027)</div>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>Curso / Nivel 2027</th>
-                        <th>Origen Cohorte 2026</th>
-                        <th>Regulares Proyectados</th>
-                        <th>Casos DAR</th>
-                        <th>Total Alumnos (Vacantes Físicas)</th>
-                        <th>Estimación Secciones/Aulas</th>
+                        <th>Origen 2026 (CITADE)</th>
+                        <th>Confirmados / Pagados</th>
+                        <th>Pendientes / No Confirmados</th>
+                        <th>Total Ordinario Proyectado</th>
+                        <th>Estimación Secciones (Aulas)</th>
                     </tr>
                 </thead>
-                <tbody id="tbodyProyeccion"></tbody>
+                <tbody id="tbodyProyeccionOrdinaria"></tbody>
+            </table>
+        </div>
+
+        <div class="section-header">🧩 2. Cohorte DAR (Integrados / Cursos Aparte)</div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nivel DAR 2027</th>
+                        <th>Origen 2026</th>
+                        <th>Alumnos Proyectados</th>
+                        <th>Estado de Continuidad</th>
+                        <th>Impacto en Preplanta</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyProyeccionDAR"></tbody>
             </table>
         </div>
     </div>
@@ -286,10 +276,8 @@ const CSV_URL_REMA14 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1z4L4
 
 let dataRema7 = [];
 let dataRema14 = [];
-let chartEstado7Instance = null;
-let chartTurno7Instance = null;
 let chartProyCursosInstance = null;
-let chartProyTipoInstance = null;
+let chartProyPagoInstance = null;
 
 function switchTab(tab) {
     document.getElementById('view-rema7').style.display = tab === 'rema7' ? 'block' : 'none';
@@ -327,11 +315,6 @@ function parseCSV(text) {
 
 async function sincronizarDatos() {
     try {
-        if (CSV_URL_REMA7.includes("TU_URL_CSV")) {
-            alert("Por favor, reemplaza las variables CSV_URL_REMA7 y CSV_URL_REMA14 con los enlaces CSV de tu Google Sheets.");
-            return;
-        }
-
         const [res7, res14] = await Promise.all([
             fetch(CSV_URL_REMA7),
             fetch(CSV_URL_REMA14)
@@ -341,8 +324,8 @@ async function sincronizarDatos() {
         const text14 = await res14.text();
 
         const rows7 = parseCSV(text7);
-        dataRema7 = rows7.slice(2).filter(r => r[1] && r[1] !== 'CÓDIGO').map(r => ({
-            codigo: r[1] || '',
+        dataRema7 = rows7.slice(2).filter(r => r[1] && (r[1].startsWith('CO VPR') || r[1] !== 'CÓDIGO')).map(r => ({
+            citade: r[1] || '',
             nombre: r[2] || '',
             grado: r[3] || '',
             pago: (r[4] || '').toUpperCase(),
@@ -352,7 +335,7 @@ async function sincronizarDatos() {
         }));
 
         const rows14 = parseCSV(text14);
-        dataRema14 = rows14.slice(3).filter(r => r[0] && r[0] !== 'Citade').map(r => ({
+        dataRema14 = rows14.slice(3).filter(r => r[0] && (r[0].startsWith('CO VSE') || r[0] !== 'Citade')).map(r => ({
             citade: r[0] || '',
             nombre: r[1] || '',
             cursoActual: r[2] || '',
@@ -367,74 +350,44 @@ async function sincronizarDatos() {
         actualizarMétricas14();
         renderTable14();
         actualizarProyeccion2027();
-        alert("¡Datos sincronizados con éxito!");
+        alert("¡Datos sincronizados correctamente!");
     } catch (e) {
         console.error(e);
-        alert("Error al sincronizar con Google Sheets. Revisa el enlace CSV.");
+        alert("Error al cargar Google Sheets.");
     }
 }
 
 function actualizarMétricas7() {
     const total = dataRema7.length;
-    const conf = dataRema7.filter(d => d.estado === 'CONFIRMADO').length;
-    const pagados = dataRema7.filter(d => d.pago === 'SI').length;
-    const noMat = dataRema7.filter(d => d.estado === 'NO MATRICULA').length;
-    const pend = dataRema7.filter(d => d.estado === 'PENDIENTE' || !d.estado).length;
+    const pagados = dataRema7.filter(d => d.pago === 'SI' || d.estado === 'CONFIRMADO').length;
+    const bajas = dataRema7.filter(d => d.estado === 'NO MATRICULA' || d.obs.toLowerCase().includes('baja')).length;
 
     document.getElementById('kpi-total7').innerText = total;
-    document.getElementById('kpi-conf7').innerText = conf;
-    document.getElementById('kpi-conf7-pct').innerText = total ? ((conf/total)*100).toFixed(1) + '% del total' : '0%';
-    document.getElementById('kpi-pago7').innerText = pagados;
-    document.getElementById('kpi-nopago7-sub').innerText = (total - pagados) + ' sin abonar';
-    document.getElementById('kpi-nomat7').innerText = noMat;
-    document.getElementById('kpi-nomat7-pct').innerText = total ? ((noMat/total)*100).toFixed(1) + '% de baja' : '0%';
-
-    const manana = dataRema7.filter(d => d.turno.toLowerCase().includes('mañana')).length;
-    const tarde = dataRema7.filter(d => d.turno.toLowerCase().includes('tarde')).length;
-    const noAsig = total - (manana + tarde);
-
-    if (chartEstado7Instance) chartEstado7Instance.destroy();
-    chartEstado7Instance = new Chart(document.getElementById('chartEstado7'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Confirmados', 'No Matricula', 'Pendientes'],
-            datasets: [{ data: [conf, noMat, pend], backgroundColor: ['#00a86b', '#dc3545', '#ffb703'] }]
-        },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-    });
-
-    if (chartTurno7Instance) chartTurno7Instance.destroy();
-    chartTurno7Instance = new Chart(document.getElementById('chartTurno7'), {
-        type: 'bar',
-        data: {
-            labels: ['Mañana', 'Tarde', 'No Asignado'],
-            datasets: [{ label: 'Alumnos', data: [manana, tarde, noAsig], backgroundColor: ['#0077b6', '#e63946', '#6c757d'] }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-    });
+    document.getElementById('kpi-conf7').innerText = pagados;
+    document.getElementById('kpi-conf7-pct').innerText = total ? ((pagados/total)*100).toFixed(1) + '% confirmados' : '0%';
+    document.getElementById('kpi-nomat7').innerText = bajas;
+    document.getElementById('kpi-nomat7-pct').innerText = total ? ((bajas/total)*100).toFixed(1) + '% de baja' : '0%';
 }
 
 function renderTable7() {
     const search = document.getElementById('search7').value.toLowerCase();
-    const filterEstado = document.getElementById('filterEstado7').value;
     const filterPago = document.getElementById('filterPago7').value;
 
     const filtered = dataRema7.filter(d => {
-        const matchSearch = d.nombre.toLowerCase().includes(search) || d.codigo.toLowerCase().includes(search) || d.grado.toLowerCase().includes(search);
-        const matchEstado = !filterEstado || d.estado === filterEstado;
+        const matchSearch = d.nombre.toLowerCase().includes(search) || d.citade.toLowerCase().includes(search) || d.grado.toLowerCase().includes(search);
         const matchPago = !filterPago || d.pago === filterPago;
-        return matchSearch && matchEstado && matchPago;
+        return matchSearch && matchPago;
     });
 
     const tbody = document.getElementById('tbody7');
     tbody.innerHTML = filtered.map(d => `
         <tr>
-            <td>${d.codigo}</td>
-            <td><strong>${d.nombre}</strong></td>
+            <td><strong>${d.citade}</strong></td>
+            <td>${d.nombre}</td>
             <td>${d.grado}</td>
             <td><span class="badge ${d.pago === 'SI' ? 'pago-si' : 'pago-no'}">${d.pago || 'NO'}</span></td>
             <td><span class="badge ${d.estado === 'CONFIRMADO' ? 'st-confirmado' : d.estado === 'NO MATRICULA' ? 'st-nomat' : 'st-pendiente'}">${d.estado || 'PENDIENTE'}</span></td>
-            <td><span class="badge ${d.turno.toLowerCase().includes('mañana') ? 'turno-m' : d.turno.toLowerCase().includes('tarde') ? 'turno-t' : 'turno-na'}">${d.turno}</span></td>
+            <td>${d.turno}</td>
             <td>${d.obs}</td>
         </tr>
     `).join('');
@@ -442,32 +395,15 @@ function renderTable7() {
 
 function actualizarMétricas14() {
     const total = dataRema14.length;
-    
-    const alumnosDAR = dataRema14.filter(d => 
-        (d.cursoActual && d.cursoActual.toUpperCase().includes('DAR')) || 
-        (d.curso2027 && d.curso2027.toUpperCase().includes('DAR'))
-    );
-    const totalDAR = alumnosDAR.length;
-
-    const alumnosRegulares = dataRema14.filter(d => 
-        !(d.cursoActual && d.cursoActual.toUpperCase().includes('DAR')) && 
-        !(d.curso2027 && d.curso2027.toUpperCase().includes('DAR'))
-    );
-    const totalRegulares = alumnosRegulares.length;
-
-    const pagadosRegulares = alumnosRegulares.filter(d => d.pago === 'SI').length;
-    const pendientesRegulares = totalRegulares - pagadosRegulares;
-
-    const bajas = dataRema14.filter(d => d.obs || d.porque).length;
+    const dar = dataRema14.filter(d => d.cursoActual.toUpperCase().includes('DAR') || d.curso2027.toUpperCase().includes('DAR')).length;
+    const regulares = total - dar;
+    const pagadosReg = dataRema14.filter(d => d.pago === 'SI' && !d.cursoActual.toUpperCase().includes('DAR')).length;
 
     document.getElementById('kpi-total14').innerText = total;
-    document.getElementById('kpi-sub-total14').innerText = `${totalRegulares} Regulares | ${totalDAR} DAR`;
-    
-    document.getElementById('kpi-pago14').innerText = pagadosRegulares;
-    document.getElementById('kpi-pago14-sub').innerText = `${pendientesRegulares} pendientes reales de pago`;
-
-    document.getElementById('kpi-dar14').innerText = totalDAR;
-    document.getElementById('kpi-bajas14').innerText = bajas;
+    document.getElementById('kpi-sub-total14').innerText = `${regulares} Regulares | ${dar} DAR`;
+    document.getElementById('kpi-pago14').innerText = pagadosReg;
+    document.getElementById('kpi-pago14-sub').innerText = `${regulares - pagadosReg} pendientes`;
+    document.getElementById('kpi-dar14').innerText = dar;
 }
 
 function renderTable14() {
@@ -475,138 +411,149 @@ function renderTable14() {
     const filterPago = document.getElementById('filterPago14').value;
 
     const filtered = dataRema14.filter(d => {
-        const matchSearch = d.nombre.toLowerCase().includes(search) || 
-                            d.citade.toLowerCase().includes(search) || 
-                            d.cursoActual.toLowerCase().includes(search) ||
-                            d.curso2027.toLowerCase().includes(search);
+        const matchSearch = d.nombre.toLowerCase().includes(search) || d.citade.toLowerCase().includes(search) || d.cursoActual.toLowerCase().includes(search);
         const matchPago = !filterPago || d.pago === filterPago;
         return matchSearch && matchPago;
     });
 
     const tbody = document.getElementById('tbody14');
     tbody.innerHTML = filtered.map(d => {
-        const esDAR = (d.cursoActual && d.cursoActual.toUpperCase().includes('DAR')) || 
-                      (d.curso2027 && d.curso2027.toUpperCase().includes('DAR'));
-        
+        const esDAR = d.cursoActual.toUpperCase().includes('DAR') || d.curso2027.toUpperCase().includes('DAR');
         return `
-        <tr style="${esDAR ? 'background-color: #f0fdf4;' : ''}">
-            <td>${d.citade}</td>
-            <td><strong>${d.nombre}</strong> ${esDAR ? '<span class="badge" style="background:#0f4c5c; color:white; margin-left:4px;">DAR</span>' : ''}</td>
+        <tr style="${esDAR ? 'background-color: #f3e8ff;' : ''}">
+            <td><strong>${d.citade}</strong></td>
+            <td>${d.nombre} ${esDAR ? '<span class="badge" style="background:#7b2cbf; color:white;">DAR</span>' : ''}</td>
             <td>${d.cursoActual}</td>
             <td>${d.curso2027 || '-'}</td>
-            <td>
-                <span class="badge ${d.pago === 'SI' || esDAR ? 'pago-si' : 'pago-no'}">
-                    ${esDAR ? 'PAGO (DAR)' : (d.pago || 'NO')}
-                </span>
-            </td>
-            <td>${d.obs}</td>
-            <td>${d.porque}</td>
+            <td><span class="badge ${d.pago === 'SI' || esDAR ? 'pago-si' : 'pago-no'}">${esDAR ? 'DAR' : (d.pago || 'NO')}</span></td>
+            <td>${d.obs} ${d.porque}</td>
         </tr>
     `;
     }).join('');
 }
 
 function actualizarProyeccion2027() {
-    // 1° Año 2027 (Viene de REMA 7°)
-    const confirmados7 = dataRema7.filter(d => d.estado === 'CONFIRMADO' || d.pago === 'SI');
-    const total1ro2027 = confirmados7.length;
-    const dar1ro2027 = confirmados7.filter(d => d.grado && d.grado.toUpperCase().includes('DAR')).length;
-    const reg1ro2027 = total1ro2027 - dar1ro2027;
-
-    // 2° a 5° Año 2027 (Proviene de REMA 1° a 4°)
-    const desgloseCursos = {
-        '2° Año': { reg: 0, dar: 0, total: 0, origen: '1° Año 2026' },
-        '3° Año': { reg: 0, dar: 0, total: 0, origen: '2° Año 2026' },
-        '4° Año': { reg: 0, dar: 0, total: 0, origen: '3° Año 2026' },
-        '5° Año': { reg: 0, dar: 0, total: 0, origen: '4° Año 2026' }
+    // COHORTE ORDINARIA (1° a 5° Año 2027)
+    const ordinario = {
+        '1° Año 2027': { origen: '7° Grado (CO VPR)', pagados: 0, pendientes: 0, total: 0 },
+        '2° Año 2027': { origen: '1° Año 2026 (CO VSE)', pagados: 0, pendientes: 0, total: 0 },
+        '3° Año 2027': { origen: '2° Año 2026 (CO VSE)', pagados: 0, pendientes: 0, total: 0 },
+        '4° Año 2027': { origen: '3° Año 2026 (CO VSE)', pagados: 0, pendientes: 0, total: 0 },
+        '5° Año 2027': { origen: '4° Año 2026 (CO VSE)', pagados: 0, pendientes: 0, total: 0 }
     };
 
+    let darTotal = 0;
+    let darPagadosConfirmados = 0;
+
+    // Process 7° -> 1° 2027
+    dataRema7.forEach(d => {
+        if (d.estado === 'NO MATRICULA' || d.obs.toLowerCase().includes('baja')) return;
+        const esPagado = d.pago === 'SI' || d.estado === 'CONFIRMADO';
+        ordinario['1° Año 2027'].total++;
+        if (esPagado) ordinario['1° Año 2027'].pagados++;
+        else ordinario['1° Año 2027'].pendientes++;
+    });
+
+    // Process 1° a 4° -> 2° a 5° 2027
     dataRema14.forEach(d => {
-        // Excluimos las bajas registradas
-        if (d.obs || d.porque) return;
+        if (d.obs.toLowerCase().includes('baja') || d.porque.toLowerCase().includes('baja')) return;
+        
+        const esDAR = d.cursoActual.toUpperCase().includes('DAR') || d.curso2027.toUpperCase().includes('DAR');
+        const esPagado = d.pago === 'SI';
 
-        const cursoActual = d.cursoActual || '';
-        const esDAR = cursoActual.toUpperCase().includes('DAR') || (d.curso2027 && d.curso2027.toUpperCase().includes('DAR'));
+        if (esDAR) {
+            darTotal++;
+            if (esPagado) darPagadosConfirmados++;
+            return; // Separate from standard classrooms
+        }
 
-        if (cursoActual.includes('1°')) {
-            desgloseCursos['2° Año'].total++;
-            if (esDAR) desgloseCursos['2° Año'].dar++; else desgloseCursos['2° Año'].reg++;
-        } else if (cursoActual.includes('2°')) {
-            desgloseCursos['3° Año'].total++;
-            if (esDAR) desgloseCursos['3° Año'].dar++; else desgloseCursos['3° Año'].reg++;
-        } else if (cursoActual.includes('3°')) {
-            desgloseCursos['4° Año'].total++;
-            if (esDAR) desgloseCursos['4° Año'].dar++; else desgloseCursos['4° Año'].reg++;
-        } else if (cursoActual.includes('4°')) {
-            desgloseCursos['5° Año'].total++;
-            if (esDAR) desgloseCursos['5° Año'].dar++; else desgloseCursos['5° Año'].reg++;
+        const curso = d.cursoActual;
+        if (curso.includes('1°')) {
+            ordinario['2° Año 2027'].total++;
+            if (esPagado) ordinario['2° Año 2027'].pagados++; else ordinario['2° Año 2027'].pendientes++;
+        } else if (curso.includes('2°')) {
+            ordinario['3° Año 2027'].total++;
+            if (esPagado) ordinario['3° Año 2027'].pagados++; else ordinario['3° Año 2027'].pendientes++;
+        } else if (curso.includes('3°')) {
+            ordinario['4° Año 2027'].total++;
+            if (esPagado) ordinario['4° Año 2027'].pagados++; else ordinario['4° Año 2027'].pendientes++;
+        } else if (curso.includes('4°')) {
+            ordinario['5° Año 2027'].total++;
+            if (esPagado) ordinario['5° Año 2027'].pagados++; else ordinario['5° Año 2027'].pendientes++;
         }
     });
 
-    const totalRegulares = reg1ro2027 + Object.values(desgloseCursos).reduce((acc, c) => acc + c.reg, 0);
-    const totalDAR = dar1ro2027 + Object.values(desgloseCursos).reduce((acc, c) => acc + c.dar, 0);
-    const totalProyectado = totalRegulares + totalDAR;
-    const totalBajas = (dataRema7.length - total1ro2027) + dataRema14.filter(d => d.obs || d.porque).length;
+    // Totals calculation
+    let totalOrdinario = 0;
+    let totalOrdinarioPagados = 0;
+    for (let key in ordinario) {
+        totalOrdinario += ordinario[key].total;
+        totalOrdinarioPagados += ordinario[key].pagados;
+    }
 
-    // Actualizar KPIs
-    document.getElementById('kpi-proy-total').innerText = totalProyectado;
-    document.getElementById('kpi-proy-regulares').innerText = totalRegulares;
-    document.getElementById('kpi-proy-dar').innerText = totalDAR;
-    document.getElementById('kpi-proy-bajas').innerText = totalBajas;
+    const totalGlobal2027 = totalOrdinario + darTotal;
+    const totalGlobalPagados = totalOrdinarioPagados + darPagadosConfirmados;
 
-    // Renderizar Tabla Preplanta
-    const tbody = document.getElementById('tbodyProyeccion');
-    let htmlContent = `
+    // Render KPIs
+    document.getElementById('kpi-proy-total').innerText = totalGlobal2027;
+    document.getElementById('kpi-proy-ordinario').innerText = totalOrdinario;
+    document.getElementById('kpi-proy-dar-total').innerText = darTotal;
+    document.getElementById('kpi-proy-pagados').innerText = totalGlobalPagados;
+    document.getElementById('kpi-proy-pend-sub').innerText = totalGlobal2027 ? ((totalGlobalPagados/totalGlobal2027)*100).toFixed(1) + '% pago/confirmado' : '0%';
+
+    // Render Table Ordinaria
+    const tbodyOrd = document.getElementById('tbodyProyeccionOrdinaria');
+    tbodyOrd.innerHTML = Object.keys(ordinario).map(curso => {
+        const item = ordinario[curso];
+        const secciones = Math.ceil(item.total / 30) || 0;
+        return `
+            <tr>
+                <td><strong>${curso}</strong></td>
+                <td>${item.origen}</td>
+                <td style="color:var(--pago-si); font-weight:bold;">${item.pagados}</td>
+                <td style="color:var(--st-pend-txt); font-weight:bold;">${item.pendientes}</td>
+                <td><strong>${item.total}</strong></td>
+                <td><span class="badge" style="background:var(--header-bg); color:white;">${secciones} Sección(es)</span></td>
+            </tr>
+        `;
+    }).join('');
+
+    // Render Table DAR
+    const tbodyDAR = document.getElementById('tbodyProyeccionDAR');
+    tbodyDAR.innerHTML = `
         <tr>
-            <td><strong>1° Año 2027</strong></td>
-            <td>7° Grado (Ingresantes)</td>
-            <td>${reg1ro2027}</td>
-            <td>${dar1ro2027}</td>
-            <td><strong>${total1ro2027}</strong></td>
-            <td><span class="badge" style="background:#0f4c5c; color:white;">${Math.ceil(total1ro2027 / 30) || 1} División(es)</span></td>
+            <td><strong>Matrícula DAR 2027</strong></td>
+            <td>Continuidad 1° a 4° DAR 2026</td>
+            <td><strong>${darTotal}</strong></td>
+            <td><span class="badge st-confirmado">INTEGRADOS Y CONTINUAN</span></td>
+            <td>Se consideran por fuera de las divisiones estándar de la Preplanta.</td>
         </tr>
     `;
 
-    for (const [curso, info] of Object.entries(desgloseCursos)) {
-        htmlContent += `
-            <tr>
-                <td><strong>${curso} 2027</strong></td>
-                <td>${info.origen}</td>
-                <td>${info.reg}</td>
-                <td>${info.dar}</td>
-                <td><strong>${info.total}</strong></td>
-                <td><span class="badge" style="background:#0f4c5c; color:white;">${Math.ceil(info.total / 30) || 1} División(es)</span></td>
-            </tr>
-        `;
-    }
-    tbody.innerHTML = htmlContent;
-
-    // Renderizar Gráficos
-    const labels = ['1° Año', '2° Año', '3° Año', '4° Año', '5° Año'];
-    const dataTotalesCursos = [
-        total1ro2027,
-        desgloseCursos['2° Año'].total,
-        desgloseCursos['3° Año'].total,
-        desgloseCursos['4° Año'].total,
-        desgloseCursos['5° Año'].total
-    ];
-
+    // Charts
     if (chartProyCursosInstance) chartProyCursosInstance.destroy();
     chartProyCursosInstance = new Chart(document.getElementById('chartProyeccionCursos'), {
         type: 'bar',
         data: {
-            labels: labels,
-            datasets: [{ label: 'Matrícula Estimada', data: dataTotalesCursos, backgroundColor: '#2cb3ab' }]
+            labels: Object.keys(ordinario),
+            datasets: [{
+                label: 'Alumnos Ordinarios',
+                data: Object.values(ordinario).map(i => i.total),
+                backgroundColor: '#2cb3ab'
+            }]
         },
         options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
     });
 
-    if (chartProyTipoInstance) chartProyTipoInstance.destroy();
-    chartProyTipoInstance = new Chart(document.getElementById('chartProyeccionTipo'), {
-        type: 'pie',
+    if (chartProyPagoInstance) chartProyPagoInstance.destroy();
+    chartProyPagoInstance = new Chart(document.getElementById('chartProyeccionPago'), {
+        type: 'doughnut',
         data: {
-            labels: ['Regulares (Ordinarios)', 'Casos DAR (Exentos/Defecto)'],
-            datasets: [{ data: [totalRegulares, totalDAR], backgroundColor: ['#00a86b', '#0f4c5c'] }]
+            labels: ['Pagado / Confirmado', 'Pendiente de Cobro / Firma'],
+            datasets: [{
+                data: [totalGlobalPagados, totalGlobal2027 - totalGlobalPagados],
+                backgroundColor: ['#00a86b', '#ffb703']
+            }]
         },
         options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
     });
