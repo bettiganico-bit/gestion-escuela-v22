@@ -6,8 +6,9 @@
     <title>Colegio Esteban Echeverría - Gestión de Matrícula y Preplanta</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Microsoft Authentication Library (MSAL v2) -->
-    <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+    
+    <!-- Librería Oficial de Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <style>
         :root {
@@ -39,13 +40,7 @@
         }
         .login-card h2 { font-family: 'Montserrat', sans-serif; font-size: 20px; color: var(--header-bg); margin-bottom: 10px; }
         .login-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 25px; line-height: 1.4; }
-        .btn-ms {
-            background-color: #2f2f2f; color: white; border: none; padding: 12px 20px;
-            border-radius: 6px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600;
-            cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; transition: background 0.2s;
-        }
-        .btn-ms:hover { background-color: #000000; }
+        .google-btn-wrapper { display: flex; justify-content: center; margin-top: 15px; }
         .login-error { color: #dc3545; font-size: 12px; margin-top: 15px; display: none; font-weight: 500; }
 
         /* Header e Interfaz Principal */
@@ -109,20 +104,37 @@
 </head>
 <body>
 
-<!-- PANTALLA DE ACCESO/LOGIN -->
+<!-- PANTALLA DE LOGIN CON GOOGLE -->
 <div id="login-screen">
     <div class="login-card">
         <h2>Colegio Esteban Echeverría</h2>
-        <p>Iniciá sesión con tu cuenta institucional para acceder a la Gestión de Matrícula y Preplanta.</p>
-        <button class="btn-ms" onclick="iniciarSesionMicrosoft()">
-            <svg width="18" height="18" viewBox="0 0 23 23"><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/></svg>
-            Iniciar sesión con Microsoft
-        </button>
+        <p>Iniciá sesión exclusivamente con tu cuenta oficial <strong>@bue.edu.ar</strong> para acceder al sistema.</p>
+        
+        <div class="google-btn-wrapper">
+            <!-- Botón renderizado por Google -->
+            <div id="g_id_onload"
+                 data-client_id="TU_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="outline"
+                 data-text="signin_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
+        </div>
+
         <div id="login-error-msg" class="login-error"></div>
     </div>
 </div>
 
-<!-- APLICACIÓN PRINCIPAL (OCULTA HASTA AUTENTICAR) -->
+<!-- APLICACIÓN PRINCIPAL -->
 <div id="app-content" style="display: none;">
     <header>
         <div class="brand">
@@ -298,23 +310,8 @@
 </div>
 
 <script>
-// CONFIGURACIÓN DE DOMINIOS PERMITIDOS
-const DOMINIOS_PERMITIDOS = ['vaneduc.edu.ar', 'uai.edu.ar'];
-
-// CONFIGURACIÓN DE MSAL (MICROSOFT AUTH)
-const msalConfig = {
-    auth: {
-        clientId: "TU_CLIENT_ID_DE_AZURE", // Reemplazar con el Client ID de tu registro en Azure
-        authority: "https://login.microsoftonline.com/common",
-        redirectUri: window.location.origin + window.location.pathname
-    },
-    cache: {
-        cacheLocation: "sessionStorage",
-        storeAuthStateInCookie: false
-    }
-};
-
-const myMSALObj = new msal.PublicClientApplication(msalConfig);
+// DOMINIO PERMITIDO EXCLUSIVO
+const DOMINIO_PERMITIDO = 'bue.edu.ar';
 
 // CONFIGURACIÓN DE FUENTES DE DATOS GOOGLE SHEETS
 const CSV_URL_REMA7 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1z4L4t62x33D6xezUw7k49xLZNqReUV5qKANmA_J0NdsOYrbSqKmG6ongOYK1w/pub?gid=966426154&single=true&output=csv";
@@ -325,55 +322,50 @@ let dataRema14 = [];
 let chartProyCursosInstance = null;
 let chartProyPagoInstance = null;
 
-window.addEventListener('load', async () => {
-    try {
-        await myMSALObj.initialize();
-        const currentAccounts = myMSALObj.getAllAccounts();
-        if (currentAccounts.length > 0) {
-            validarYIniciarCuenta(currentAccounts[0]);
-        }
-    } catch (error) {
-        console.error("Error al inicializar MSAL:", error);
-    }
-});
+// Función para decodificar JWT de Google de forma nativa en navegador
+function parseJwt(token) {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+}
 
-async function iniciarSesionMicrosoft() {
+// Callback invocado automáticamente al iniciar sesión con Google
+function handleCredentialResponse(response) {
     const errorDiv = document.getElementById('login-error-msg');
     errorDiv.style.display = 'none';
 
     try {
-        const loginResponse = await myMSALObj.loginPopup({
-            scopes: ["User.Read"]
-        });
-        validarYIniciarCuenta(loginResponse.account);
-    } catch (error) {
-        console.error("Error durante el login:", error);
-        errorDiv.innerText = "Error o cancelación de inicio de sesión.";
-        errorDiv.style.display = 'block';
-    }
-}
+        const payload = parseJwt(response.credential);
+        const email = (payload.email || '').toLowerCase();
+        const domain = email.split('@')[1];
 
-function validarYIniciarCuenta(account) {
-    const email = (account.username || '').toLowerCase();
-    const domain = email.split('@')[1];
-    const errorDiv = document.getElementById('login-error-msg');
+        if (domain === DOMINIO_PERMITIDO) {
+            // Guardar token/sesión básica en sessionStorage
+            sessionStorage.setItem('user_email', email);
+            sessionStorage.setItem('user_name', payload.name || email);
 
-    if (DOMINIOS_PERMITIDOS.includes(domain)) {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app-content').style.display = 'block';
-        document.getElementById('user-display').innerText = account.name || email;
-        sincronizarDatos();
-    } else {
-        errorDiv.innerText = `Acceso denegado. El correo (${email}) no pertenece a un dominio autorizado (@vaneduc.edu.ar o @uai.edu.ar).`;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-content').style.display = 'block';
+            document.getElementById('user-display').innerText = payload.name || email;
+            sincronizarDatos();
+        } else {
+            errorDiv.innerText = `Acceso denegado. La cuenta (${email}) no pertenece al dominio oficial @bue.edu.ar.`;
+            errorDiv.style.display = 'block';
+        }
+    } catch (e) {
+        console.error("Error validando token de Google:", e);
+        errorDiv.innerText = "Ocurrió un error al procesar el inicio de sesión.";
         errorDiv.style.display = 'block';
-        myMSALObj.logoutPopup();
     }
 }
 
 function cerrarSesion() {
-    myMSALObj.logoutPopup().then(() => {
-        window.location.reload();
-    });
+    sessionStorage.clear();
+    google.accounts.id.disableAutoSelect();
+    window.location.reload();
 }
 
 function switchTab(tab) {
