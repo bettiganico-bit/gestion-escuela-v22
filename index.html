@@ -6,9 +6,6 @@
     <title>Colegio Esteban Echeverría - Gestión de Matrícula y Preplanta</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Librería Oficial de Google Identity Services -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <style>
         :root {
@@ -35,13 +32,27 @@
             display: flex; align-items: center; justify-content: center; z-index: 9999;
         }
         .login-card {
-            background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            background: white; padding: 35px 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             text-align: center; max-width: 420px; width: 90%;
         }
-        .login-card h2 { font-family: 'Montserrat', sans-serif; font-size: 20px; color: var(--header-bg); margin-bottom: 10px; }
-        .login-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 25px; line-height: 1.4; }
-        .google-btn-wrapper { display: flex; justify-content: center; margin-top: 15px; }
-        .login-error { color: #dc3545; font-size: 12px; margin-top: 15px; display: none; font-weight: 500; }
+        .login-card h2 { font-family: 'Montserrat', sans-serif; font-size: 20px; color: var(--header-bg); margin-bottom: 8px; }
+        .login-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
+        
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--header-bg); margin-bottom: 5px; text-transform: uppercase; }
+        .form-input {
+            width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+            font-size: 13px; outline: none; transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: var(--primary-teal); }
+
+        .btn-login {
+            background-color: var(--primary-teal); color: white; border: none; padding: 12px 20px;
+            border-radius: 6px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 700;
+            cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.2s;
+        }
+        .btn-login:hover { background-color: #249790; }
+        .login-error { color: #dc3545; font-size: 12px; margin-top: 15px; display: none; font-weight: 500; text-align: center; }
 
         /* Header e Interfaz Principal */
         header {
@@ -55,7 +66,8 @@
         .brand-text p { font-size: 12px; color: var(--primary-teal); font-weight: 500; }
         
         .header-actions { display: flex; align-items: center; gap: 12px; }
-        .user-info { font-size: 12px; color: #e2e8f0; font-weight: 500; }
+        .user-info { font-size: 12px; color: #e2e8f0; font-weight: 500; text-align: right; }
+        .user-info span { display: block; font-size: 10px; color: var(--primary-teal); font-weight: 700; text-transform: uppercase; }
         .btn-sync {
             background: var(--primary-teal); color: white; border: none; padding: 8px 16px;
             border-radius: 6px; font-family: 'Montserrat', sans-serif; font-weight: 700;
@@ -104,31 +116,23 @@
 </head>
 <body>
 
-<!-- PANTALLA DE LOGIN CON GOOGLE -->
+<!-- PANTALLA DE ACCESO CONTROLADO -->
 <div id="login-screen">
     <div class="login-card">
         <h2>Colegio Esteban Echeverría</h2>
-        <p>Iniciá sesión exclusivamente con tu cuenta oficial <strong>@bue.edu.ar</strong> para acceder al sistema.</p>
+        <p>Acceso restringido para el equipo directivo y personal autorizado.</p>
         
-        <div class="google-btn-wrapper">
-            <!-- Botón renderizado por Google -->
-            <div id="g_id_onload"
-                 data-client_id="TU_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
-                 data-context="signin"
-                 data-ux_mode="popup"
-                 data-callback="handleCredentialResponse"
-                 data-auto_prompt="false">
+        <form onsubmit="validarAcceso(event)">
+            <div class="form-group">
+                <label for="user-email">Correo Institucional</label>
+                <input type="email" id="user-email" class="form-input" placeholder="usuario@vaneduc.edu.ar" required>
             </div>
-
-            <div class="g_id_signin"
-                 data-type="standard"
-                 data-shape="rectangular"
-                 data-theme="outline"
-                 data-text="signin_with"
-                 data-size="large"
-                 data-logo_alignment="left">
+            <div class="form-group">
+                <label for="user-pin">PIN de Acceso</label>
+                <input type="password" id="user-pin" class="form-input" placeholder="••••••••" required>
             </div>
-        </div>
+            <button type="submit" class="btn-login">Ingresar al Sistema</button>
+        </form>
 
         <div id="login-error-msg" class="login-error"></div>
     </div>
@@ -145,7 +149,10 @@
             </div>
         </div>
         <div class="header-actions">
-            <span id="user-display" class="user-info"></span>
+            <div class="user-info">
+                <div id="user-display"></div>
+                <span id="role-display"></span>
+            </div>
             <button class="btn-sync" onclick="sincronizarDatos()">🔄 Sincronizar Google Sheets</button>
             <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
         </div>
@@ -155,7 +162,7 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('rema7')">REMA 7° (CO VPR)</button>
             <button class="tab-btn" onclick="switchTab('rema14')">REMA 1° a 4° (CO VSE)</button>
-            <button class="tab-btn" style="background: var(--primary-dark); color: white;" onclick="switchTab('proyeccion')">📊 Proyección Preplanta 2027</button>
+            <button id="tab-btn-proyeccion" class="tab-btn" style="background: var(--primary-dark); color: white;" onclick="switchTab('proyeccion')">📊 Proyección Preplanta 2027</button>
         </div>
 
         <!-- VISTA REMA 7° -->
@@ -166,7 +173,7 @@
                     <div class="value" id="kpi-total7">0</div>
                     <div class="subtext">Ingreso CO VPR</div>
                 </div>
-                <div class="stat-card" style="border-color: var(--pago-si);">
+                <div class="stat-card stat-card-pago" style="border-color: var(--pago-si);">
                     <h3>Pagados / Confirmados</h3>
                     <div class="value" id="kpi-conf7" style="color: var(--pago-si);">0</div>
                 </div>
@@ -178,7 +185,7 @@
 
             <div class="table-controls">
                 <input type="text" id="search7" class="search-box" onkeyup="renderTable7()" placeholder="Buscar en 7°...">
-                <select id="filterPago7" class="filter-select" onchange="renderTable7()">
+                <select id="filterPago7" class="filter-select select-pago-filter" onchange="renderTable7()">
                     <option value="">Todos los Pagos</option>
                     <option value="SI">PAGÓ: SI</option>
                     <option value="NO">PAGÓ: NO</option>
@@ -189,7 +196,12 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>CITADE</th><th>Estudiante</th><th>Grado Actual</th><th>Estado Pago</th><th>Estado Matrícula</th><th>Observaciones</th>
+                            <th>CITADE</th>
+                            <th>Estudiante</th>
+                            <th>Grado Actual</th>
+                            <th class="col-pago">Estado Pago</th>
+                            <th>Estado Matrícula</th>
+                            <th>Observaciones</th>
                         </tr>
                     </thead>
                     <tbody id="tbody7"></tbody>
@@ -205,7 +217,7 @@
                     <div class="value" id="kpi-total14">0</div>
                     <div class="subtext" id="kpi-sub-total14">0 Regulares | 0 DAR</div>
                 </div>
-                <div class="stat-card" style="border-color: var(--pago-si);">
+                <div class="stat-card stat-card-pago" style="border-color: var(--pago-si);">
                     <h3>Regulares Pagados</h3>
                     <div class="value" id="kpi-pago14" style="color: var(--pago-si);">0</div>
                 </div>
@@ -218,7 +230,7 @@
 
             <div class="table-controls">
                 <input type="text" id="search14" class="search-box" onkeyup="renderTable14()" placeholder="Buscar en 1° a 4°...">
-                <select id="filterPago14" class="filter-select" onchange="renderTable14()">
+                <select id="filterPago14" class="filter-select select-pago-filter" onchange="renderTable14()">
                     <option value="">Todos los Pagos</option>
                     <option value="SI">PAGÓ: SI</option>
                     <option value="NO">PAGÓ: NO</option>
@@ -229,7 +241,12 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>CITADE</th><th>Estudiante</th><th>Curso Actual</th><th>Curso 2027</th><th>Estado Pago</th><th>Observaciones</th>
+                            <th>CITADE</th>
+                            <th>Estudiante</th>
+                            <th>Curso Actual</th>
+                            <th>Curso 2027</th>
+                            <th class="col-pago">Estado Pago</th>
+                            <th>Observaciones</th>
                         </tr>
                     </thead>
                     <tbody id="tbody14"></tbody>
@@ -245,12 +262,12 @@
                     <div class="value" id="kpi-proy-regulares-total">0</div>
                     <div class="subtext">Alumnos concretos de la escuela</div>
                 </div>
-                <div class="stat-card" style="border-color: var(--pago-si);">
+                <div class="stat-card stat-card-pago" style="border-color: var(--pago-si);">
                     <h3>Regulares Pagos / Confirmados</h3>
                     <div class="value" id="kpi-proy-regulares-pagos" style="color: var(--pago-si);">0</div>
                     <div class="subtext" id="kpi-proy-pct-pagos">0% del total regular</div>
                 </div>
-                <div class="stat-card" style="border-color: var(--pago-no);">
+                <div class="stat-card stat-card-pago" style="border-color: var(--pago-no);">
                     <h3>Regulares Deben / Pendientes</h3>
                     <div class="value" id="kpi-proy-regulares-deben" style="color: var(--pago-no);">0</div>
                     <div class="subtext">Falta regularizar pago</div>
@@ -267,7 +284,7 @@
                     <h4>Proyección por Cursos Regulares (1° a 5° Año 2027)</h4>
                     <canvas id="chartProyeccionCursos" height="180"></canvas>
                 </div>
-                <div class="chart-card">
+                <div class="chart-card card-chart-pago">
                     <h4>Estado de Pago Alumnos Regulares Escolarizados</h4>
                     <canvas id="chartProyeccionPago" height="180"></canvas>
                 </div>
@@ -280,8 +297,8 @@
                         <tr>
                             <th>Curso / Nivel 2027</th>
                             <th>Origen 2026 (CITADE)</th>
-                            <th>Pagados / Confirmados</th>
-                            <th>Deben / Pendientes</th>
+                            <th class="col-pago">Pagados / Confirmados</th>
+                            <th class="col-pago">Deben / Pendientes</th>
                             <th>Total Alumnos Regulares</th>
                             <th>Estimación Secciones (Aulas)</th>
                         </tr>
@@ -310,61 +327,72 @@
 </div>
 
 <script>
-// DOMINIO PERMITIDO EXCLUSIVO
-const DOMINIO_PERMITIDO = 'bue.edu.ar';
+// MATRIZ DE USUARIOS Y ROLES
+const USUARIOS_AUTORIZADOS = {
+    "nicolasmartin.bettiga@vaneduc.edu.ar":   { rol: "DIRECCION", nombre: "Dirección Secundaria" },
+    "melina.cociglio@uai.edu.ar":             { rol: "DIRECCION", nombre: "Dirección Secundaria" },
+    "mirnanatalia.soria@vaneduc.edu.ar":      { rol: "DIRECCION", nombre: "Dirección Secundaria" },
+    "danielaalejandra.galeano@vaneduc.edu.ar": { rol: "DIRECCION", nombre: "Dirección Académica" },
+    "mauricio.torres@vaneduc.edu.ar":          { rol: "SECRETARIA", nombre: "Secretaría (Estadísticas y Números)" }
+};
 
-// CONFIGURACIÓN DE FUENTES DE DATOS GOOGLE SHEETS
+const PIN_ACCESO = 'Echeverria2027';
+
+// FUENTES DE DATOS GOOGLE SHEETS
 const CSV_URL_REMA7 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1z4L4t62x33D6xezUw7k49xLZNqReUV5qKANmA_J0NdsOYrbSqKmG6ongOYK1w/pub?gid=966426154&single=true&output=csv";
 const CSV_URL_REMA14 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1z4L4t62x33D6xezUw7k49xLZNqReUV5qKANmA_J0NdsOYrbSqKmG6ongOYK1w/pub?gid=1078825249&single=true&output=csv";
 
 let dataRema7 = [];
 let dataRema14 = [];
+let currentUserRol = null;
 let chartProyCursosInstance = null;
 let chartProyPagoInstance = null;
 
-// Función para decodificar JWT de Google de forma nativa en navegador
-function parseJwt(token) {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
-}
+window.addEventListener('load', () => {
+    const savedEmail = sessionStorage.getItem('user_session');
+    if (savedEmail && USUARIOS_AUTORIZADOS[savedEmail]) {
+        mostrarAplicacion(savedEmail);
+    }
+});
 
-// Callback invocado automáticamente al iniciar sesión con Google
-function handleCredentialResponse(response) {
+function validarAcceso(event) {
+    event.preventDefault();
+    const email = document.getElementById('user-email').value.trim().toLowerCase();
+    const pin = document.getElementById('user-pin').value;
     const errorDiv = document.getElementById('login-error-msg');
+    
     errorDiv.style.display = 'none';
 
-    try {
-        const payload = parseJwt(response.credential);
-        const email = (payload.email || '').toLowerCase();
-        const domain = email.split('@')[1];
-
-        if (domain === DOMINIO_PERMITIDO) {
-            // Guardar token/sesión básica en sessionStorage
-            sessionStorage.setItem('user_email', email);
-            sessionStorage.setItem('user_name', payload.name || email);
-
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app-content').style.display = 'block';
-            document.getElementById('user-display').innerText = payload.name || email;
-            sincronizarDatos();
-        } else {
-            errorDiv.innerText = `Acceso denegado. La cuenta (${email}) no pertenece al dominio oficial @bue.edu.ar.`;
-            errorDiv.style.display = 'block';
-        }
-    } catch (e) {
-        console.error("Error validando token de Google:", e);
-        errorDiv.innerText = "Ocurrió un error al procesar el inicio de sesión.";
+    if (!USUARIOS_AUTORIZADOS[email]) {
+        errorDiv.innerText = `Acceso denegado. El correo no está registrado en el listado de usuarios autorizados.`;
         errorDiv.style.display = 'block';
+        return;
     }
+
+    if (pin !== PIN_ACCESO) {
+        errorDiv.innerText = `PIN o clave de acceso incorrecta.`;
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    sessionStorage.setItem('user_session', email);
+    mostrarAplicacion(email);
+}
+
+function mostrarAplicacion(email) {
+    const userObj = USUARIOS_AUTORIZADOS[email];
+    currentUserRol = userObj.rol;
+
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-content').style.display = 'block';
+    document.getElementById('user-display').innerText = email;
+    document.getElementById('role-display').innerText = `Rol: ${userObj.nombre}`;
+
+    sincronizarDatos();
 }
 
 function cerrarSesion() {
     sessionStorage.clear();
-    google.accounts.id.disableAutoSelect();
     window.location.reload();
 }
 
@@ -375,7 +403,9 @@ function switchTab(tab) {
     
     document.querySelectorAll('.tab-btn')[0].classList.toggle('active', tab === 'rema7');
     document.querySelectorAll('.tab-btn')[1].classList.toggle('active', tab === 'rema14');
-    document.querySelectorAll('.tab-btn')[2].classList.toggle('active', tab === 'proyeccion');
+    if (document.querySelectorAll('.tab-btn')[2]) {
+        document.querySelectorAll('.tab-btn')[2].classList.toggle('active', tab === 'proyeccion');
+    }
 
     if (tab === 'proyeccion') {
         actualizarProyeccion2027();
@@ -440,7 +470,7 @@ async function sincronizarDatos() {
         actualizarProyeccion2027();
     } catch (e) {
         console.error(e);
-        alert("Error al intentar sincronizar los datos de Google Sheets.");
+        alert("Error al sincronizar datos de Google Sheets.");
     }
 }
 
@@ -456,7 +486,8 @@ function actualizarMétricas7() {
 
 function renderTable7() {
     const search = document.getElementById('search7').value.toLowerCase();
-    const filterPago = document.getElementById('filterPago7').value;
+    const filterSelect = document.getElementById('filterPago7');
+    const filterPago = filterSelect ? filterSelect.value : '';
 
     const filtered = dataRema7.filter(d => {
         const matchSearch = d.nombre.toLowerCase().includes(search) || d.citade.toLowerCase().includes(search);
@@ -464,10 +495,12 @@ function renderTable7() {
         return matchSearch && matchPago;
     });
 
+    const esSecretaria = currentUserRol === 'SECRETARIA';
+
     document.getElementById('tbody7').innerHTML = filtered.map(d => `
         <tr>
             <td><strong>${d.citade}</strong></td>
-            <td>${d.nombre}</td>
+            <td>${esSecretaria ? 'Estudiante Reserva (Oculto)' : d.nombre}</td>
             <td>${d.grado}</td>
             <td><span class="badge ${d.pago === 'SI' ? 'pago-si' : 'pago-no'}">${d.pago || 'NO'}</span></td>
             <td>${d.estado || 'PENDIENTE'}</td>
@@ -490,7 +523,8 @@ function actualizarMétricas14() {
 
 function renderTable14() {
     const search = document.getElementById('search14').value.toLowerCase();
-    const filterPago = document.getElementById('filterPago14').value;
+    const filterSelect = document.getElementById('filterPago14');
+    const filterPago = filterSelect ? filterSelect.value : '';
 
     const filtered = dataRema14.filter(d => {
         const matchSearch = d.nombre.toLowerCase().includes(search) || d.citade.toLowerCase().includes(search);
@@ -498,12 +532,14 @@ function renderTable14() {
         return matchSearch && matchPago;
     });
 
+    const esSecretaria = currentUserRol === 'SECRETARIA';
+
     document.getElementById('tbody14').innerHTML = filtered.map(d => {
         const esDAR = (d.cursoActual + d.curso2027).toUpperCase().includes('DAR');
         return `
         <tr style="${esDAR ? 'background-color: #f3e8ff;' : ''}">
             <td><strong>${d.citade}</strong></td>
-            <td>${d.nombre} ${esDAR ? '<span class="badge badge-dar">DAR</span>' : ''}</td>
+            <td>${esSecretaria ? 'Estudiante Matriculado (Oculto)' : d.nombre} ${esDAR ? '<span class="badge badge-dar">DAR</span>' : ''}</td>
             <td>${d.cursoActual}</td>
             <td>${d.curso2027 || '-'}</td>
             <td><span class="badge ${d.pago === 'SI' || esDAR ? 'pago-si' : 'pago-no'}">${esDAR ? 'DAR' : (d.pago || 'NO')}</span></td>
@@ -524,17 +560,14 @@ function actualizarProyeccion2027() {
 
     let darTotalCount = 0;
 
-    // 1. Sumatoria 7° (Ingreso)
     dataRema7.forEach(d => {
         if (d.estado === 'NO MATRICULA' || (d.obs && d.obs.toLowerCase().includes('baja'))) return;
-        
         const esPagado = d.pago === 'SI' || d.estado === 'CONFIRMADO';
         cursosRegulares['1° Año 2027'].total++;
         if (esPagado) cursosRegulares['1° Año 2027'].pagados++;
         else cursosRegulares['1° Año 2027'].deben++;
     });
 
-    // 2. Sumatoria 1° a 4° (Sin DAR)
     dataRema14.forEach(d => {
         const obsText = (d.obs || '').toLowerCase();
         const porqueText = (d.porque || '').toLowerCase();
@@ -563,7 +596,6 @@ function actualizarProyeccion2027() {
         }
     });
 
-    // Consolidados
     let totalEscuelaRegulares = 0;
     let totalEscuelaPagados = 0;
     let totalEscuelaDeben = 0;
@@ -574,14 +606,12 @@ function actualizarProyeccion2027() {
         totalEscuelaDeben += cursosRegulares[key].deben;
     }
 
-    // KPIs Consolidados
     document.getElementById('kpi-proy-regulares-total').innerText = totalEscuelaRegulares;
     document.getElementById('kpi-proy-regulares-pagos').innerText = totalEscuelaPagados;
     document.getElementById('kpi-proy-regulares-deben').innerText = totalEscuelaDeben;
     document.getElementById('kpi-proy-dar-total').innerText = darTotalCount;
     document.getElementById('kpi-proy-pct-pagos').innerText = totalEscuelaRegulares ? ((totalEscuelaPagados / totalEscuelaRegulares) * 100).toFixed(1) + '% regularizado' : '0%';
 
-    // Renders
     document.getElementById('tbodyProyeccionOrdinaria').innerHTML = Object.keys(cursosRegulares).map(curso => {
         const item = cursosRegulares[curso];
         const secciones = Math.ceil(item.total / 30) || 0;
@@ -607,7 +637,6 @@ function actualizarProyeccion2027() {
         </tr>
     `;
 
-    // Gráficos
     if (chartProyCursosInstance) chartProyCursosInstance.destroy();
     chartProyCursosInstance = new Chart(document.getElementById('chartProyeccionCursos'), {
         type: 'bar',
