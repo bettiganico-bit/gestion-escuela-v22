@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Colegio Esteban Echeverría - Gestión de Matrícula</title>
+    <title>Colegio Esteban Echeverría - Gestión de Matrícula y Preplanta</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -102,6 +102,7 @@
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('rema7')">REMA 7° (Ingreso)</button>
         <button class="tab-btn" onclick="switchTab('rema14')">REMA 1° a 4° Año</button>
+        <button class="tab-btn" style="background: var(--primary-dark); color: white;" onclick="switchTab('proyeccion')">📊 Proyección Preplanta 2027</button>
     </div>
 
     <!-- VISTA REMA 7° -->
@@ -224,6 +225,59 @@
             </table>
         </div>
     </div>
+
+    <!-- VISTA PROYECCIÓN PREPLANTA 2027 -->
+    <div id="view-proyeccion" style="display:none;">
+        <div class="stats-grid">
+            <div class="stat-card" style="border-color: var(--primary-dark);">
+                <h3>Matrícula Total Proyectada 2027</h3>
+                <div class="value" id="kpi-proy-total">0</div>
+                <div class="subtext">Capacidad física en aulas (1° a 5°)</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--pago-si);">
+                <h3>Matrícula Regular Cobrable</h3>
+                <div class="value" id="kpi-proy-regulares" style="color: var(--pago-si);">0</div>
+                <div class="subtext">Aportes ordinarios estimados</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--primary-teal);">
+                <h3>Cupos Especiales / DAR</h3>
+                <div class="value" id="kpi-proy-dar" style="color: var(--primary-dark);">0</div>
+                <div class="subtext">Retención y exenciones por defecto</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--pago-no);">
+                <h3>Bajas Estimadas</h3>
+                <div class="value" id="kpi-proy-bajas" style="color: var(--pago-no);">0</div>
+                <div class="subtext">No matriculados / Salientes</div>
+            </div>
+        </div>
+
+        <div class="charts-row">
+            <div class="chart-card">
+                <h4>Distribución Estimada por Año (2027)</h4>
+                <canvas id="chartProyeccionCursos" height="180"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4>Composición de Matrícula (Regulares vs DAR)</h4>
+                <canvas id="chartProyeccionTipo" height="180"></canvas>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Curso / Nivel 2027</th>
+                        <th>Origen Cohorte 2026</th>
+                        <th>Regulares Proyectados</th>
+                        <th>Casos DAR</th>
+                        <th>Total Alumnos (Vacantes Físicas)</th>
+                        <th>Estimación Secciones/Aulas</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyProyeccion"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -234,12 +288,21 @@ let dataRema7 = [];
 let dataRema14 = [];
 let chartEstado7Instance = null;
 let chartTurno7Instance = null;
+let chartProyCursosInstance = null;
+let chartProyTipoInstance = null;
 
 function switchTab(tab) {
     document.getElementById('view-rema7').style.display = tab === 'rema7' ? 'block' : 'none';
     document.getElementById('view-rema14').style.display = tab === 'rema14' ? 'block' : 'none';
+    document.getElementById('view-proyeccion').style.display = tab === 'proyeccion' ? 'block' : 'none';
+    
     document.querySelectorAll('.tab-btn')[0].classList.toggle('active', tab === 'rema7');
     document.querySelectorAll('.tab-btn')[1].classList.toggle('active', tab === 'rema14');
+    document.querySelectorAll('.tab-btn')[2].classList.toggle('active', tab === 'proyeccion');
+
+    if (tab === 'proyeccion') {
+        actualizarProyeccion2027();
+    }
 }
 
 function parseCSV(text) {
@@ -303,6 +366,7 @@ async function sincronizarDatos() {
         renderTable7();
         actualizarMétricas14();
         renderTable14();
+        actualizarProyeccion2027();
         alert("¡Datos sincronizados con éxito!");
     } catch (e) {
         console.error(e);
@@ -440,6 +504,112 @@ function renderTable14() {
         </tr>
     `;
     }).join('');
+}
+
+function actualizarProyeccion2027() {
+    // 1° Año 2027 (Viene de REMA 7°)
+    const confirmados7 = dataRema7.filter(d => d.estado === 'CONFIRMADO' || d.pago === 'SI');
+    const total1ro2027 = confirmados7.length;
+    const dar1ro2027 = confirmados7.filter(d => d.grado && d.grado.toUpperCase().includes('DAR')).length;
+    const reg1ro2027 = total1ro2027 - dar1ro2027;
+
+    // 2° a 5° Año 2027 (Proviene de REMA 1° a 4°)
+    const desgloseCursos = {
+        '2° Año': { reg: 0, dar: 0, total: 0, origen: '1° Año 2026' },
+        '3° Año': { reg: 0, dar: 0, total: 0, origen: '2° Año 2026' },
+        '4° Año': { reg: 0, dar: 0, total: 0, origen: '3° Año 2026' },
+        '5° Año': { reg: 0, dar: 0, total: 0, origen: '4° Año 2026' }
+    };
+
+    dataRema14.forEach(d => {
+        // Excluimos las bajas registradas
+        if (d.obs || d.porque) return;
+
+        const cursoActual = d.cursoActual || '';
+        const esDAR = cursoActual.toUpperCase().includes('DAR') || (d.curso2027 && d.curso2027.toUpperCase().includes('DAR'));
+
+        if (cursoActual.includes('1°')) {
+            desgloseCursos['2° Año'].total++;
+            if (esDAR) desgloseCursos['2° Año'].dar++; else desgloseCursos['2° Año'].reg++;
+        } else if (cursoActual.includes('2°')) {
+            desgloseCursos['3° Año'].total++;
+            if (esDAR) desgloseCursos['3° Año'].dar++; else desgloseCursos['3° Año'].reg++;
+        } else if (cursoActual.includes('3°')) {
+            desgloseCursos['4° Año'].total++;
+            if (esDAR) desgloseCursos['4° Año'].dar++; else desgloseCursos['4° Año'].reg++;
+        } else if (cursoActual.includes('4°')) {
+            desgloseCursos['5° Año'].total++;
+            if (esDAR) desgloseCursos['5° Año'].dar++; else desgloseCursos['5° Año'].reg++;
+        }
+    });
+
+    const totalRegulares = reg1ro2027 + Object.values(desgloseCursos).reduce((acc, c) => acc + c.reg, 0);
+    const totalDAR = dar1ro2027 + Object.values(desgloseCursos).reduce((acc, c) => acc + c.dar, 0);
+    const totalProyectado = totalRegulares + totalDAR;
+    const totalBajas = (dataRema7.length - total1ro2027) + dataRema14.filter(d => d.obs || d.porque).length;
+
+    // Actualizar KPIs
+    document.getElementById('kpi-proy-total').innerText = totalProyectado;
+    document.getElementById('kpi-proy-regulares').innerText = totalRegulares;
+    document.getElementById('kpi-proy-dar').innerText = totalDAR;
+    document.getElementById('kpi-proy-bajas').innerText = totalBajas;
+
+    // Renderizar Tabla Preplanta
+    const tbody = document.getElementById('tbodyProyeccion');
+    let htmlContent = `
+        <tr>
+            <td><strong>1° Año 2027</strong></td>
+            <td>7° Grado (Ingresantes)</td>
+            <td>${reg1ro2027}</td>
+            <td>${dar1ro2027}</td>
+            <td><strong>${total1ro2027}</strong></td>
+            <td><span class="badge" style="background:#0f4c5c; color:white;">${Math.ceil(total1ro2027 / 30) || 1} División(es)</span></td>
+        </tr>
+    `;
+
+    for (const [curso, info] of Object.entries(desgloseCursos)) {
+        htmlContent += `
+            <tr>
+                <td><strong>${curso} 2027</strong></td>
+                <td>${info.origen}</td>
+                <td>${info.reg}</td>
+                <td>${info.dar}</td>
+                <td><strong>${info.total}</strong></td>
+                <td><span class="badge" style="background:#0f4c5c; color:white;">${Math.ceil(info.total / 30) || 1} División(es)</span></td>
+            </tr>
+        `;
+    }
+    tbody.innerHTML = htmlContent;
+
+    // Renderizar Gráficos
+    const labels = ['1° Año', '2° Año', '3° Año', '4° Año', '5° Año'];
+    const dataTotalesCursos = [
+        total1ro2027,
+        desgloseCursos['2° Año'].total,
+        desgloseCursos['3° Año'].total,
+        desgloseCursos['4° Año'].total,
+        desgloseCursos['5° Año'].total
+    ];
+
+    if (chartProyCursosInstance) chartProyCursosInstance.destroy();
+    chartProyCursosInstance = new Chart(document.getElementById('chartProyeccionCursos'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{ label: 'Matrícula Estimada', data: dataTotalesCursos, backgroundColor: '#2cb3ab' }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    if (chartProyTipoInstance) chartProyTipoInstance.destroy();
+    chartProyTipoInstance = new Chart(document.getElementById('chartProyeccionTipo'), {
+        type: 'pie',
+        data: {
+            labels: ['Regulares (Ordinarios)', 'Casos DAR (Exentos/Defecto)'],
+            datasets: [{ data: [totalRegulares, totalDAR], backgroundColor: ['#00a86b', '#0f4c5c'] }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
 }
 
 window.onload = function() {
