@@ -177,14 +177,19 @@
     <div id="view-rema14" style="display:none;">
         <div class="stats-grid">
             <div class="stat-card" style="border-color: var(--primary-dark);">
-                <h3>Total Matrícula 1° a 4°</h3>
+                <h3>Total Matrícula (1° a 4°)</h3>
                 <div class="value" id="kpi-total14">0</div>
-                <div class="subtext">Estudiantes continuos</div>
+                <div class="subtext" id="kpi-sub-total14">0 Regulares | 0 DAR</div>
             </div>
             <div class="stat-card" style="border-color: var(--pago-si);">
-                <h3>Pagos Abonados</h3>
+                <h3>Regulares Pagados</h3>
                 <div class="value" id="kpi-pago14" style="color: var(--pago-si);">0</div>
-                <div class="subtext" id="kpi-pago14-sub">0 sin abonar</div>
+                <div class="subtext" id="kpi-pago14-sub">0 pendientes de cobro</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--primary-teal);">
+                <h3>Matrículas DAR</h3>
+                <div class="value" id="kpi-dar14" style="color: var(--primary-dark);">0</div>
+                <div class="subtext">Pagos por defecto / Exentos</div>
             </div>
             <div class="stat-card" style="border-color: var(--pago-no);">
                 <h3>Bajas / No Continúan</h3>
@@ -222,7 +227,6 @@
 </div>
 
 <script>
-// PEGA AQUÍ TUS URLS PUBLICADAS EN FORMATO CSV DESDE GOOGLE SHEETS
 const CSV_URL_REMA7 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1z4L4t62x33D6xezUw7k49xLZNqReUV5qKANmA_J0NdsOYrbSqKmG6ongOYK1w/pub?gid=966426154&single=true&output=csv";
 const CSV_URL_REMA14 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQC1z4L4t62x33D6xezUw7k49xLZNqReUV5qKANmA_J0NdsOYrbSqKmG6ongOYK1w/pub?gid=1078825249&single=true&output=csv";
 
@@ -238,7 +242,6 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-btn')[1].classList.toggle('active', tab === 'rema14');
 }
 
-// Convertidor sencillo de CSV a Matrices
 function parseCSV(text) {
     const lines = text.split('\n');
     return lines.map(line => {
@@ -274,7 +277,6 @@ async function sincronizarDatos() {
         const text7 = await res7.text();
         const text14 = await res14.text();
 
-        // Procesar REMA 7° (Saltar filas vacías de encabezado)
         const rows7 = parseCSV(text7);
         dataRema7 = rows7.slice(2).filter(r => r[1] && r[1] !== 'CÓDIGO').map(r => ({
             codigo: r[1] || '',
@@ -286,7 +288,6 @@ async function sincronizarDatos() {
             obs: r[7] || ''
         }));
 
-        // Procesar REMA 1° a 4°
         const rows14 = parseCSV(text14);
         dataRema14 = rows14.slice(3).filter(r => r[0] && r[0] !== 'Citade').map(r => ({
             citade: r[0] || '',
@@ -324,7 +325,6 @@ function actualizarMétricas7() {
     document.getElementById('kpi-nomat7').innerText = noMat;
     document.getElementById('kpi-nomat7-pct').innerText = total ? ((noMat/total)*100).toFixed(1) + '% de baja' : '0%';
 
-    // Gráficos
     const manana = dataRema7.filter(d => d.turno.toLowerCase().includes('mañana')).length;
     const tarde = dataRema7.filter(d => d.turno.toLowerCase().includes('tarde')).length;
     const noAsig = total - (manana + tarde);
@@ -378,12 +378,31 @@ function renderTable7() {
 
 function actualizarMétricas14() {
     const total = dataRema14.length;
-    const pagados = dataRema14.filter(d => d.pago === 'SI').length;
+    
+    const alumnosDAR = dataRema14.filter(d => 
+        (d.cursoActual && d.cursoActual.toUpperCase().includes('DAR')) || 
+        (d.curso2027 && d.curso2027.toUpperCase().includes('DAR'))
+    );
+    const totalDAR = alumnosDAR.length;
+
+    const alumnosRegulares = dataRema14.filter(d => 
+        !(d.cursoActual && d.cursoActual.toUpperCase().includes('DAR')) && 
+        !(d.curso2027 && d.curso2027.toUpperCase().includes('DAR'))
+    );
+    const totalRegulares = alumnosRegulares.length;
+
+    const pagadosRegulares = alumnosRegulares.filter(d => d.pago === 'SI').length;
+    const pendientesRegulares = totalRegulares - pagadosRegulares;
+
     const bajas = dataRema14.filter(d => d.obs || d.porque).length;
 
     document.getElementById('kpi-total14').innerText = total;
-    document.getElementById('kpi-pago14').innerText = pagados;
-    document.getElementById('kpi-pago14-sub').innerText = (total - pagados) + ' sin abonar';
+    document.getElementById('kpi-sub-total14').innerText = `${totalRegulares} Regulares | ${totalDAR} DAR`;
+    
+    document.getElementById('kpi-pago14').innerText = pagadosRegulares;
+    document.getElementById('kpi-pago14-sub').innerText = `${pendientesRegulares} pendientes reales de pago`;
+
+    document.getElementById('kpi-dar14').innerText = totalDAR;
     document.getElementById('kpi-bajas14').innerText = bajas;
 }
 
@@ -392,27 +411,38 @@ function renderTable14() {
     const filterPago = document.getElementById('filterPago14').value;
 
     const filtered = dataRema14.filter(d => {
-        const matchSearch = d.nombre.toLowerCase().includes(search) || d.citade.toLowerCase().includes(search) || d.cursoActual.toLowerCase().includes(search);
+        const matchSearch = d.nombre.toLowerCase().includes(search) || 
+                            d.citade.toLowerCase().includes(search) || 
+                            d.cursoActual.toLowerCase().includes(search) ||
+                            d.curso2027.toLowerCase().includes(search);
         const matchPago = !filterPago || d.pago === filterPago;
         return matchSearch && matchPago;
     });
 
     const tbody = document.getElementById('tbody14');
-    tbody.innerHTML = filtered.map(d => `
-        <tr>
+    tbody.innerHTML = filtered.map(d => {
+        const esDAR = (d.cursoActual && d.cursoActual.toUpperCase().includes('DAR')) || 
+                      (d.curso2027 && d.curso2027.toUpperCase().includes('DAR'));
+        
+        return `
+        <tr style="${esDAR ? 'background-color: #f0fdf4;' : ''}">
             <td>${d.citade}</td>
-            <td><strong>${d.nombre}</strong></td>
+            <td><strong>${d.nombre}</strong> ${esDAR ? '<span class="badge" style="background:#0f4c5c; color:white; margin-left:4px;">DAR</span>' : ''}</td>
             <td>${d.cursoActual}</td>
             <td>${d.curso2027 || '-'}</td>
-            <td><span class="badge ${d.pago === 'SI' ? 'pago-si' : 'pago-no'}">${d.pago || 'NO'}</span></td>
+            <td>
+                <span class="badge ${d.pago === 'SI' || esDAR ? 'pago-si' : 'pago-no'}">
+                    ${esDAR ? 'PAGO (DAR)' : (d.pago || 'NO')}
+                </span>
+            </td>
             <td>${d.obs}</td>
             <td>${d.porque}</td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 window.onload = function() {
-    // Si ya configuraste las URLs de CSV, puedes descommentar la siguiente línea para actualizar automáticamente al abrir la página:
     // sincronizarDatos();
 };
 </script>
