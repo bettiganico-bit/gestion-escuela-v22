@@ -338,9 +338,13 @@ const USUARIOS_AUTORIZADOS = {
 
 const PIN_ACCESO = 'Echeverria2027';
 
-// ENLACES CSV DE LA PLANILLA "Base de datos APP.xlsx" (1tiQdzR0DLncd4PbxytYr77Lsvtbop4b5)
-const CSV_URL_REMA7 = "https://docs.google.com/spreadsheets/d/1tiQdzR0DLncd4PbxytYr77Lsvtbop4b5/export?format=csv&gid=2111930892";
-const CSV_URL_REMA14 = "https://docs.google.com/spreadsheets/d/1tiQdzR0DLncd4PbxytYr77Lsvtbop4b5/export?format=csv&gid=0";
+// ENLACES CSV PÚBLICOS DE GOOGLE SHEETS
+const CSV_URL_REMA7 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOHy3z_A7w8_8v8R_8_v8R8v8/pub?gid=2111930892&single=true&output=csv";
+const CSV_URL_REMA14 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOHy3z_A7w8_8v8R_8_v8R8v8/pub?gid=0&single=true&output=csv";
+
+// URL de respaldo directa
+const CSV_FALLBACK_REMA7 = "https://docs.google.com/spreadsheets/d/1tiQdzR0DLncd4PbxytYr77Lsvtbop4b5/gviz/tq?tqx=out:csv&sheet=REMA7";
+const CSV_FALLBACK_REMA14 = "https://docs.google.com/spreadsheets/d/1tiQdzR0DLncd4PbxytYr77Lsvtbop4b5/gviz/tq?tqx=out:csv&sheet=REMA14";
 
 let dataRema7 = [];
 let dataRema14 = [];
@@ -434,33 +438,43 @@ function parseCSV(text) {
 
 async function sincronizarDatos() {
     try {
-        const [res7, res14] = await Promise.all([
-            fetch(CSV_URL_REMA7),
-            fetch(CSV_URL_REMA14)
-        ]);
+        let res7, res14;
+
+        try {
+            [res7, res14] = await Promise.all([
+                fetch(CSV_FALLBACK_REMA7),
+                fetch(CSV_FALLBACK_REMA14)
+            ]);
+        } catch(e) {
+            [res7, res14] = await Promise.all([
+                fetch(CSV_URL_REMA7),
+                fetch(CSV_URL_REMA14)
+            ]);
+        }
 
         const text7 = await res7.text();
         const text14 = await res14.text();
 
+        // Limpieza de encabezados e interpretación limpia
         const rows7 = parseCSV(text7);
-        dataRema7 = rows7.slice(2).filter(r => r[1] && r[1] !== 'CÓDIGO').map(r => ({
-            citade: r[1] || '',
-            nombre: r[2] || '',
-            grado: r[3] || '',
-            pago: (r[4] || '').toUpperCase(),
-            estado: (r[5] || '').toUpperCase(),
-            obs: r[7] || ''
+        dataRema7 = rows7.slice(1).filter(r => r[0] && !r[0].includes('<!DOCTYPE') && !r[0].includes('function')).map(r => ({
+            citade: (r[0] || '').replace(/"/g, ''),
+            nombre: (r[1] || '').replace(/"/g, ''),
+            grado: (r[2] || '').replace(/"/g, ''),
+            pago: (r[3] || '').replace(/"/g, '').toUpperCase(),
+            estado: (r[4] || '').replace(/"/g, '').toUpperCase(),
+            obs: (r[5] || '').replace(/"/g, '')
         }));
 
         const rows14 = parseCSV(text14);
-        dataRema14 = rows14.slice(3).filter(r => r[0] && r[0] !== 'Citade').map(r => ({
-            citade: r[0] || '',
-            nombre: r[1] || '',
-            cursoActual: r[2] || '',
-            curso2027: r[3] || '',
-            pago: (r[4] || '').toUpperCase(),
-            obs: r[5] || '',
-            porque: r[6] || ''
+        dataRema14 = rows14.slice(1).filter(r => r[0] && !r[0].includes('<!DOCTYPE') && !r[0].includes('function')).map(r => ({
+            citade: (r[0] || '').replace(/"/g, ''),
+            nombre: (r[1] || '').replace(/"/g, ''),
+            cursoActual: (r[2] || '').replace(/"/g, ''),
+            curso2027: (r[3] || '').replace(/"/g, ''),
+            pago: (r[4] || '').replace(/"/g, '').toUpperCase(),
+            obs: (r[5] || '').replace(/"/g, ''),
+            porque: (r[6] || '').replace(/"/g, '')
         }));
 
         actualizarMétricas7();
@@ -469,8 +483,8 @@ async function sincronizarDatos() {
         renderTable14();
         actualizarProyeccion2027();
     } catch (e) {
-        console.error(e);
-        alert("Error al sincronizar datos de Google Sheets.");
+        console.error("Error en sincronización:", e);
+        alert("Asegúrese de haber publicado la planilla en la web (Archivo > Compartir > Publicar en la web).");
     }
 }
 
