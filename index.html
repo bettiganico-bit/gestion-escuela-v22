@@ -338,13 +338,10 @@ const USUARIOS_AUTORIZADOS = {
 
 const PIN_ACCESO = 'Echeverria2027';
 
-// ENLACES DIRECTOS POR ID DE PLANILLA Y HOJA
+// ENLACES CONECTOR GViz CON APERTURA DE PESTAÑAS HOJA 1 Y HOJA 2
 const SPREADSHEET_ID = "1tiQdzR0DLncd4PbxytYr77Lsvtbop4b5";
-// Hoja 1 (7° Grado): Pestaña CO VPR (sheet_id=0)
-const CSV_URL_REMA7 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`;
-// Hoja 2 (1° a 4° Año): Pestaña CO VSE (sheet_id=1 o gviz con nombre exacto)
-const CSV_URL_REMA14_GVIZ = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VSE`;
-const CSV_URL_REMA14_EXPORT = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&sheet=CO%20VSE`;
+const CSV_URL_REMA7 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VPR`;
+const CSV_URL_REMA14 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VSE`;
 
 let dataRema7 = [];
 let dataRema14 = [];
@@ -443,11 +440,10 @@ function limpiarValor(val) {
 
 async function sincronizarDatos(manualClick = false) {
     try {
-        const res7 = await fetch(`${CSV_URL_REMA7}&nocache=${Date.now()}`);
-        let res14 = await fetch(`${CSV_URL_REMA14_EXPORT}&nocache=${Date.now()}`);
-        if (!res14.ok) {
-            res14 = await fetch(`${CSV_URL_REMA14_GVIZ}&nocache=${Date.now()}`);
-        }
+        const [res7, res14] = await Promise.all([
+            fetch(`${CSV_URL_REMA7}&nocache=${Date.now()}`),
+            fetch(`${CSV_URL_REMA14}&nocache=${Date.now()}`)
+        ]);
 
         if (!res7.ok || !res14.ok) throw new Error("Error en la conexión a Google Sheets");
 
@@ -471,12 +467,7 @@ async function sincronizarDatos(manualClick = false) {
 
         // PARSEO Y PROCESAMIENTO REMA 1° A 4°
         const rows14 = parseCSV(text14);
-        dataRema14 = rows14.slice(1).filter(r => {
-            const c0 = limpiarValor(r[0]);
-            const c1 = limpiarValor(r[1]);
-            // Descartar encabezados y filas repetidas de 7° Grado si las hubiera
-            return r.length > 2 && !c0.includes('Citade') && !c1.includes('Citade') && !c0.includes('CÓDIGO') && !c1.includes('CÓDIGO') && !c0.includes('CO VPR') && !c1.includes('CO VPR');
-        }).map(r => {
+        dataRema14 = rows14.slice(1).filter(r => r.length > 2 && !limpiarValor(r[0]).includes('Citade') && !limpiarValor(r[1]).includes('Citade') && !limpiarValor(r[0]).includes('CÓDIGO') && !limpiarValor(r[1]).includes('CÓDIGO')).map(r => {
             const hasIconCol = r.length > 6 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '');
             const offset = hasIconCol ? 1 : 0;
             return {
