@@ -338,10 +338,10 @@ const USUARIOS_AUTORIZADOS = {
 
 const PIN_ACCESO = 'Echeverria2027';
 
-// CONECTOR CON EL NUEVO ID DE GOOGLE SHEETS NATIVO
+// CONECTOR DE GOOGLE SHEETS CON NOMBRES EXACTOS DE PESTAÑAS
 const SPREADSHEET_ID = "1hnfdtOejj_68V_hxOxZzANBUEFdY7Z06Tst8dQ_jEis";
-const CSV_URL_REMA7 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VPR`;
-const CSV_URL_REMA14 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VSE`;
+const CSV_URL_REMA7 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=REMA%207%C2%B0`;
+const CSV_URL_REMA14 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=REMA%20DE%201%C2%B0%20A%204%C2%B0`;
 
 let dataRema7 = [];
 let dataRema14 = [];
@@ -450,14 +450,15 @@ async function sincronizarDatos(manualClick = false) {
         const text7 = await res7.text();
         const text14 = await res14.text();
 
-        // REMA 7° (CO VPR)
+        // REMA 7°
         const rows7 = parseCSV(text7);
-        dataRema7 = rows7.slice(1).filter(r => {
+        dataRema7 = rows7.filter(r => {
             const c0 = limpiarValor(r[0]);
             const c1 = limpiarValor(r[1]);
-            return r.length > 2 && !c0.includes('CÓDIGO') && !c1.includes('CÓDIGO') && c0 !== '';
+            const c2 = limpiarValor(r[2]);
+            return r.length > 2 && c1.toUpperCase().includes('CO VPR') && !c1.includes('CÓDIGO');
         }).map(r => {
-            const hasIconCol = r.length > 6 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '' || r[0].includes('📞'));
+            const hasIconCol = r[0] !== '' && !r[0].toUpperCase().includes('CO VPR');
             const offset = hasIconCol ? 1 : 0;
             return {
                 citade: limpiarValor(r[0 + offset]),
@@ -465,27 +466,25 @@ async function sincronizarDatos(manualClick = false) {
                 grado: limpiarValor(r[2 + offset]),
                 pago: limpiarValor(r[3 + offset]).toUpperCase(),
                 estado: limpiarValor(r[4 + offset]).toUpperCase(),
-                obs: limpiarValor(r[5 + offset])
+                obs: limpiarValor(r[6 + offset]) || limpiarValor(r[5 + offset])
             };
         });
 
-        // REMA 1° A 4° (CO VSE)
+        // REMA 1° A 4°
         const rows14 = parseCSV(text14);
-        dataRema14 = rows14.slice(1).filter(r => {
+        dataRema14 = rows14.filter(r => {
             const c0 = limpiarValor(r[0]);
             const c1 = limpiarValor(r[1]);
-            return r.length > 2 && !c0.includes('Citade') && !c1.includes('Citade') && !c0.includes('CÓDIGO') && !c1.includes('CÓDIGO') && c0 !== '';
+            return r.length > 2 && c0.toUpperCase().includes('CO VSE') && !c0.includes('Citade');
         }).map(r => {
-            const hasIconCol = r.length > 6 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '' || r[0].includes('📞'));
-            const offset = hasIconCol ? 1 : 0;
             return {
-                citade: limpiarValor(r[0 + offset]),
-                nombre: limpiarValor(r[1 + offset]),
-                cursoActual: limpiarValor(r[2 + offset]),
-                curso2027: limpiarValor(r[3 + offset]),
-                pago: limpiarValor(r[4 + offset]).toUpperCase(),
-                obs: limpiarValor(r[5 + offset]),
-                porque: limpiarValor(r[6 + offset])
+                citade: limpiarValor(r[0]),
+                nombre: limpiarValor(r[1]),
+                cursoActual: limpiarValor(r[2]),
+                curso2027: limpiarValor(r[3]),
+                pago: limpiarValor(r[4]).toUpperCase(),
+                obs: limpiarValor(r[5]),
+                porque: limpiarValor(r[6])
             };
         });
 
