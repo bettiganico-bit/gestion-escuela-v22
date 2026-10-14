@@ -338,7 +338,7 @@ const USUARIOS_AUTORIZADOS = {
 
 const PIN_ACCESO = 'Echeverria2027';
 
-// CONECTOR A GOOGLE SHEETS NATIVO
+// CONECTOR DE GOOGLE SHEETS CON NOMBRES EXACTOS DE PESTAÑAS
 const SPREADSHEET_ID = "1hnfdtOejj_68V_hxOxZzANBUEFdY7Z06Tst8dQ_jEis";
 const CSV_URL_REMA7 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=REMA%207%C2%B0`;
 const CSV_URL_REMA14 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=REMA%20DE%201%C2%B0%20A%204%C2%B0`;
@@ -450,27 +450,27 @@ async function sincronizarDatos(manualClick = false) {
         const text7 = await res7.text();
         const text14 = await res14.text();
 
-        // REMA 7° (MAPEO EXACTO DE COLUMNAS A=0, B=1, C=2, D=3, E=4, F=5)
+        // REMA 7° (B=1: CITADE, C=2: NOMBRE, D=3: GRADO, E=4: PAGÓ, F=5: ESTADO, H=7: OBS)
         const rows7 = parseCSV(text7);
         dataRema7 = rows7.filter(r => {
-            const c0 = limpiarValor(r[0]);
-            return r.length > 2 && c0.toUpperCase().includes('CO VPR') && !c0.includes('CÓDIGO');
+            const citade = limpiarValor(r[1]);
+            return r.length > 2 && citade.toUpperCase().includes('CO VPR') && !citade.includes('CÓDIGO');
         }).map(r => {
             return {
-                citade: limpiarValor(r[0]),
-                nombre: limpiarValor(r[1]),
-                grado: limpiarValor(r[2]),
-                pago: limpiarValor(r[3]).toUpperCase(),
-                estado: limpiarValor(r[4]).toUpperCase(),
-                obs: limpiarValor(r[5])
+                citade: limpiarValor(r[1]),
+                nombre: limpiarValor(r[2]),
+                grado: limpiarValor(r[3]),
+                pago: limpiarValor(r[4]).toUpperCase(),
+                estado: limpiarValor(r[5]).toUpperCase(),
+                obs: limpiarValor(r[7]) || limpiarValor(r[6])
             };
         });
 
-        // REMA 1° A 4° (MAPEO EXACTO DE COLUMNAS A=0, B=1, C=2, D=3, E=4, F=5, G=6)
+        // REMA 1° A 4° (A=0: CITADE, B=1: NOMBRE, C=2: CURSO ACTUAL, D=3: CURSO 2027, E=4: PAGÓ, F=5: OBS, G=6: POR QUÉ)
         const rows14 = parseCSV(text14);
         dataRema14 = rows14.filter(r => {
-            const c0 = limpiarValor(r[0]);
-            return r.length > 2 && c0.toUpperCase().includes('CO VSE') && !c0.includes('Citade');
+            const citade = limpiarValor(r[0]);
+            return r.length > 2 && citade.toUpperCase().includes('CO VSE') && !citade.includes('Citade');
         }).map(r => {
             return {
                 citade: limpiarValor(r[0]),
