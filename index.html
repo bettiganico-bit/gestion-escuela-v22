@@ -338,7 +338,7 @@ const USUARIOS_AUTORIZADOS = {
 
 const PIN_ACCESO = 'Echeverria2027';
 
-// CONECTOR A GOOGLE SHEETS BASE DE DATOS APP
+// CONECTOR A PESTAÑAS EXACTAS: CO VPR (7°) Y CO VSE (1°-4°)
 const SPREADSHEET_ID = "1tiQdzR0DLncd4PbxytYr77Lsvtbop4b5";
 const CSV_URL_REMA7 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VPR`;
 const CSV_URL_REMA14 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VSE`;
@@ -451,8 +451,8 @@ async function sincronizarDatos(manualClick = false) {
         const text14 = await res14.text();
 
         const rows7 = parseCSV(text7);
-        // Filtrar encabezados y ajustar índices exactos (omite la columna 0 si son íconos/estado)
-        dataRema7 = rows7.slice(1).filter(r => r.length > 2 && !limpiarValor(r[0]).includes('CÓDIGO') && !limpiarValor(r[1]).includes('CÓDIGO')).map(r => {
+        // Filtrar encabezados iniciales de CO VPR
+        dataRema7 = rows7.slice(2).filter(r => r.length > 2 && !limpiarValor(r[0]).includes('CÓDIGO') && !limpiarValor(r[1]).includes('CÓDIGO')).map(r => {
             const hasIconCol = r.length > 6 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '');
             const offset = hasIconCol ? 1 : 0;
             return {
@@ -466,8 +466,9 @@ async function sincronizarDatos(manualClick = false) {
         });
 
         const rows14 = parseCSV(text14);
-        dataRema14 = rows14.slice(1).filter(r => r.length > 2 && !limpiarValor(r[0]).includes('Citade') && !limpiarValor(r[1]).includes('Citade')).map(r => {
-            const hasIconCol = r.length > 7 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '');
+        // Filtrar encabezados iniciales de CO VSE
+        dataRema14 = rows14.slice(2).filter(r => r.length > 2 && !limpiarValor(r[0]).includes('Citade') && !limpiarValor(r[1]).includes('Citade') && !limpiarValor(r[0]).includes('CÓDIGO') && !limpiarValor(r[1]).includes('CÓDIGO')).map(r => {
+            const hasIconCol = r.length > 6 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '');
             const offset = hasIconCol ? 1 : 0;
             return {
                 citade: limpiarValor(r[0 + offset]),
