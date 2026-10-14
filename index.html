@@ -338,10 +338,10 @@ const USUARIOS_AUTORIZADOS = {
 
 const PIN_ACCESO = 'Echeverria2027';
 
-// ENLACES CONECTOR DE GOOGLE SHEETS
-const SPREADSHEET_ID = "1tiQdzR0DLncd4PbxytYr77Lsvtbop4b5";
-const CSV_URL_REMA7 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VPR&range=A1:Z150`;
-const CSV_URL_REMA14 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VSE&range=A1:Z600`;
+// CONECTOR CON EL NUEVO ID DE GOOGLE SHEETS NATIVO
+const SPREADSHEET_ID = "1hnfdtOejj_68V_hxOxZzANBUEFdY7Z06Tst8dQ_jEis";
+const CSV_URL_REMA7 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VPR`;
+const CSV_URL_REMA14 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CO%20VSE`;
 
 let dataRema7 = [];
 let dataRema14 = [];
@@ -457,7 +457,7 @@ async function sincronizarDatos(manualClick = false) {
             const c1 = limpiarValor(r[1]);
             return r.length > 2 && !c0.includes('CÓDIGO') && !c1.includes('CÓDIGO') && c0 !== '';
         }).map(r => {
-            const hasIconCol = r.length > 6 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '');
+            const hasIconCol = r.length > 6 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '' || r[0].includes('📞'));
             const offset = hasIconCol ? 1 : 0;
             return {
                 citade: limpiarValor(r[0 + offset]),
@@ -471,33 +471,23 @@ async function sincronizarDatos(manualClick = false) {
 
         // REMA 1° A 4° (CO VSE)
         const rows14 = parseCSV(text14);
-        
-        // Si por tema de Drive ambas hojas devuelven la misma consulta, forzamos separacion por grado
-        const esMismaHoja = rows14.length === rows7.length;
-
-        if (esMismaHoja) {
-            // Caso fallback si la API entrega la solapa 1 en ambas
-            dataRema14 = [];
-        } else {
-            dataRema14 = rows14.slice(1).filter(r => {
-                const c0 = limpiarValor(r[0]);
-                const c1 = limpiarValor(r[1]);
-                const c2 = limpiarValor(r[2]);
-                return r.length > 2 && !c0.includes('Citade') && !c1.includes('Citade') && !c0.includes('CÓDIGO') && !c1.includes('CÓDIGO') && c0 !== '';
-            }).map(r => {
-                const hasIconCol = r.length > 6 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '');
-                const offset = hasIconCol ? 1 : 0;
-                return {
-                    citade: limpiarValor(r[0 + offset]),
-                    nombre: limpiarValor(r[1 + offset]),
-                    cursoActual: limpiarValor(r[2 + offset]),
-                    curso2027: limpiarValor(r[3 + offset]),
-                    pago: limpiarValor(r[4 + offset]).toUpperCase(),
-                    obs: limpiarValor(r[5 + offset]),
-                    porque: limpiarValor(r[6 + offset])
-                };
-            });
-        }
+        dataRema14 = rows14.slice(1).filter(r => {
+            const c0 = limpiarValor(r[0]);
+            const c1 = limpiarValor(r[1]);
+            return r.length > 2 && !c0.includes('Citade') && !c1.includes('Citade') && !c0.includes('CÓDIGO') && !c1.includes('CÓDIGO') && c0 !== '';
+        }).map(r => {
+            const hasIconCol = r.length > 6 && (r[0].includes('Column') || r[0].length < 3 || r[0] === '' || r[0].includes('📞'));
+            const offset = hasIconCol ? 1 : 0;
+            return {
+                citade: limpiarValor(r[0 + offset]),
+                nombre: limpiarValor(r[1 + offset]),
+                cursoActual: limpiarValor(r[2 + offset]),
+                curso2027: limpiarValor(r[3 + offset]),
+                pago: limpiarValor(r[4 + offset]).toUpperCase(),
+                obs: limpiarValor(r[5 + offset]),
+                porque: limpiarValor(r[6 + offset])
+            };
+        });
 
         actualizarMétricas7();
         renderTable7();
