@@ -338,7 +338,7 @@ const USUARIOS_AUTORIZADOS = {
 
 const PIN_ACCESO = 'Echeverria2027';
 
-// CONECTOR DE GOOGLE SHEETS CON NOMBRES EXACTOS DE PESTAÑAS
+// CONECTOR A GOOGLE SHEETS NATIVO
 const SPREADSHEET_ID = "1hnfdtOejj_68V_hxOxZzANBUEFdY7Z06Tst8dQ_jEis";
 const CSV_URL_REMA7 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=REMA%207%C2%B0`;
 const CSV_URL_REMA14 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=REMA%20DE%201%C2%B0%20A%204%C2%B0`;
@@ -450,31 +450,26 @@ async function sincronizarDatos(manualClick = false) {
         const text7 = await res7.text();
         const text14 = await res14.text();
 
-        // REMA 7°
+        // REMA 7° (MAPEO EXACTO DE COLUMNAS A=0, B=1, C=2, D=3, E=4, F=5)
         const rows7 = parseCSV(text7);
         dataRema7 = rows7.filter(r => {
             const c0 = limpiarValor(r[0]);
-            const c1 = limpiarValor(r[1]);
-            const c2 = limpiarValor(r[2]);
-            return r.length > 2 && c1.toUpperCase().includes('CO VPR') && !c1.includes('CÓDIGO');
+            return r.length > 2 && c0.toUpperCase().includes('CO VPR') && !c0.includes('CÓDIGO');
         }).map(r => {
-            const hasIconCol = r[0] !== '' && !r[0].toUpperCase().includes('CO VPR');
-            const offset = hasIconCol ? 1 : 0;
             return {
-                citade: limpiarValor(r[0 + offset]),
-                nombre: limpiarValor(r[1 + offset]),
-                grado: limpiarValor(r[2 + offset]),
-                pago: limpiarValor(r[3 + offset]).toUpperCase(),
-                estado: limpiarValor(r[4 + offset]).toUpperCase(),
-                obs: limpiarValor(r[6 + offset]) || limpiarValor(r[5 + offset])
+                citade: limpiarValor(r[0]),
+                nombre: limpiarValor(r[1]),
+                grado: limpiarValor(r[2]),
+                pago: limpiarValor(r[3]).toUpperCase(),
+                estado: limpiarValor(r[4]).toUpperCase(),
+                obs: limpiarValor(r[5])
             };
         });
 
-        // REMA 1° A 4°
+        // REMA 1° A 4° (MAPEO EXACTO DE COLUMNAS A=0, B=1, C=2, D=3, E=4, F=5, G=6)
         const rows14 = parseCSV(text14);
         dataRema14 = rows14.filter(r => {
             const c0 = limpiarValor(r[0]);
-            const c1 = limpiarValor(r[1]);
             return r.length > 2 && c0.toUpperCase().includes('CO VSE') && !c0.includes('Citade');
         }).map(r => {
             return {
